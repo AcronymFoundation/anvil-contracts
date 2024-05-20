@@ -1,0 +1,38 @@
+{
+  "name": "anvil-contracts",
+  "version": "1.0.0",
+  "description": "Solidity smart contracts for the Anvil protocol",
+  "files": [
+    "/contracts/**/*.sol"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AmperaFoundation/anvil-contracts.git"
+  },
+  "keywords": [
+    "anvil",
+    "solidity",
+    "ethereum",
+    "contracts",
+    "ampera"
+  ],
+  "author": "Ampera Foundation <contracts@af.xyz>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AmperaFoundation/anvil-contracts/issues"
+  },
+  "homepage": "https://github.com/AmperaFoundation/anvil-contracts#readme",
+  "dependencies": {
+    "hardhat": "^2.22.4",
+    "@openzeppelin/contracts": "5.0.1",
+    "@openzeppelin/contracts-upgradeable": "5.0.1",
+    "@pythnetwork/pyth-sdk-solidity": "^2.2.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
