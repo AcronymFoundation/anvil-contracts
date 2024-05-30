@@ -388,7 +388,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * @return The timestamp after which the current epoch ends.
      */
     function getEpochEndTimestamp(uint256 _epoch) public view returns (uint256) {
-        return ((_epoch + 1) * epochPeriodSeconds) + firstEpochStartTimeSeconds;
+        return ((_epoch + 1) * epochPeriodSeconds) + firstEpochStartTimeSeconds - 1;
     }
 
     /**
