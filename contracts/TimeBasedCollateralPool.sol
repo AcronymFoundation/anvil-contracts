@@ -308,7 +308,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         uint256 endOfNextEpoch = getEpochEndTimestamp(currentEpoch + 1);
 
         _claimableCollateral = new ClaimableCollateral[](_tokens.length);
-        for (uint i = 0; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; i++) {
             address tokenAddress = address(_tokens[i]);
 
             _claimableCollateral[i].endOfCurrentEpochTimestampSeconds = endOfCurrentEpoch;
