@@ -42,11 +42,9 @@ contract Anvil is AnvilERC20Votes {
     constructor(IClaimable _claimContract, uint256 _claimContractBalance) ERC20("Anvil", "ANVL") EIP712("Anvil", "1") {
         claimContract = _claimContract;
 
-        // Total supply 100 Billion + decimals.
-        // TODO: Update this when we know balances.
-        // Lock some tokens in claim contract.
+        // Mint required number of tokens to the Claim contract.
         _mint(address(_claimContract), _claimContractBalance);
-        // Send some tokens to msg.sender to allocate outside of claim contract.
+        // Mint the remaining tokens to the deployer to allocate as necessary.
         _mint(msg.sender, _maxSupply() - _claimContractBalance);
     }
 
