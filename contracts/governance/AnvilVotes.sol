@@ -20,6 +20,7 @@ import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
  *   - _delegate(...) is abstract, as it  needs to account for claims
  *   - _moveDelegateVotes(...) is removed since that logic will be up to the implementor
  *   - _transferVotingUnits(...) is removed since it was only in this contract for access to _moveDelegateVotes(...)
+ *   _ _totalCheckpoints is removed since it would not be updated outside of the constructor (and a constant was added to replace it).
  *   - _push(...), _add(...), and _subtract(...) are moved to Anvil.sol.
  *   - _delagatee and _delegateCheckpoints fields are internal now rather than private.
  *
@@ -39,7 +40,8 @@ abstract contract AnvilVotes is Context, EIP712, Nonces, IERC5805 {
     // mapping(address delegatee => Checkpoints.Trace208) private _delegateCheckpoints;
     mapping(address delegatee => Checkpoints.Trace208) internal _delegateCheckpoints;
 
-    Checkpoints.Trace208 private _totalCheckpoints;
+    // NB: Removed because it is no longer needed.
+    // Checkpoints.Trace208 private _totalCheckpoints;
 
     /**
      * @dev The clock was incorrectly modified.
@@ -94,27 +96,28 @@ abstract contract AnvilVotes is Context, EIP712, Nonces, IERC5805 {
         return _delegateCheckpoints[account].upperLookupRecent(SafeCast.toUint48(timepoint));
     }
 
-    /**
-     * @dev Returns the total supply of votes available at a specific moment in the past. If the `clock()` is
-     * configured to use block numbers, this will return the value at the end of the corresponding block.
-     *
-     * NOTE: This value is the sum of all available votes, which is not necessarily the sum of all delegated votes.
-     * Votes that have not been delegated are still part of total supply, even though they would not participate in a
-     * vote.
-     *
-     * Requirements:
-     *
-     * - `timepoint` must be in the past. If operating using block numbers, the block must be already mined.
-     */
-    function getPastTotalSupply(uint256 timepoint) public view virtual returns (uint256) {
-        uint48 currentTimepoint = clock();
-        if (timepoint >= currentTimepoint) {
-            revert ERC5805FutureLookup(timepoint, currentTimepoint);
-        }
-        return _totalCheckpoints.upperLookupRecent(SafeCast.toUint48(timepoint));
-    }
+    // NB: This is commented out because it is implemented by AnvilERC20Votes.
+    //    /**
+    //     * @dev Returns the total supply of votes available at a specific moment in the past. If the `clock()` is
+    //     * configured to use block numbers, this will return the value at the end of the corresponding block.
+    //     *
+    //     * NOTE: This value is the sum of all available votes, which is not necessarily the sum of all delegated votes.
+    //     * Votes that have not been delegated are still part of total supply, even though they would not participate in a
+    //     * vote.
+    //     *
+    //     * Requirements:
+    //     *
+    //     * - `timepoint` must be in the past. If operating using block numbers, the block must be already mined.
+    //     */
+    //    function getPastTotalSupply(uint256 timepoint) public view virtual returns (uint256) {
+    //        uint48 currentTimepoint = clock();
+    //        if (timepoint >= currentTimepoint) {
+    //            revert ERC5805FutureLookup(timepoint, currentTimepoint);
+    //        }
+    //        return _totalCheckpoints.upperLookupRecent(SafeCast.toUint48(timepoint));
+    //    }
 
-    //NB: This is commented out because it no longer used.
+    // NB: This is commented out because it no longer used.
     //    /**
     //     * @dev Returns the current total supply of votes.
     //     */

@@ -82,14 +82,6 @@ contract Anvil is AnvilERC20Votes {
 
     /**
      * @inheritdoc AnvilERC20Votes
-     */
-    function _maxSupply() internal view virtual override returns (uint256) {
-        // NB: If this is updated, the max safe value for supply is 2**255 -1 since we unsafely cast uint256 to int256 below.
-        return 100_000_000_000 * 10 ** uint256(decimals());
-    }
-
-    /**
-     * @inheritdoc AnvilERC20Votes
      *
      * @dev Overridden to handle claim contract voting power.
      */

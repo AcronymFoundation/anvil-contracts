@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @notice This is an exact clone of OpenZeppelin's {ERC20Votes} contract with the following modifications:
+ *   - getPastTotalSupply(...) is implemented and returns _maxSupply() since Anvil has a constant supply.
  *   - _getVotingUnits(...) is removed, as it is no longer required by the parent contract.
- *   - _maxSupply(...) is declared abstract, in favor of implementation in Anvil.sol.
+ *   - _maxSupply(...) is updated to a hard-coded value.
  *   - _transferVotingUnits(...) is declared as abstract in this file (it originally was in Votes.sol, but it is no longer necessary there.)
  */
 abstract contract AnvilERC20Votes is ERC20, AnvilVotes {
@@ -17,20 +18,14 @@ abstract contract AnvilERC20Votes is ERC20, AnvilVotes {
      */
     error ERC20ExceededSafeSupply(uint256 increasedSupply, uint256 cap);
 
-    //    NB: This is abstract and implemented in Anvil.sol instead for clarity.
-    //    /**
-    //     * @dev Maximum token supply. Defaults to `type(uint208).max` (2^208^ - 1).
-    //     *
-    //     * This maximum is enforced in {_update}. It limits the total supply of the token, which is otherwise a uint256,
-    //     * so that checkpoints can be stored in the Trace208 structure used by {{Votes}}. Increasing this value will not
-    //     * remove the underlying limitation, and will cause {_update} to fail because of a math overflow in
-    //     * {_transferVotingUnits}. An override could be used to further restrict the total supply (to a lower value) if
-    //     * additional logic requires it. When resolving override conflicts on this function, the minimum should be
-    //     * returned.
-    //     */
-    //    function _maxSupply() internal view virtual returns (uint256) {
-    //        return type(uint208).max;
-    //    }
+    /**
+     * @dev Maximum token supply. Hardcoded because it cannot change.
+     */
+    function _maxSupply() internal view virtual returns (uint256) {
+        // NB: This is updated to return the constant supply
+        // return type(uint208).max;
+        return 100_000_000_000 * 10 ** uint256(decimals());
+    }
 
     /**
      * @dev Move voting power when tokens are transferred.
@@ -84,16 +79,13 @@ abstract contract AnvilERC20Votes is ERC20, AnvilVotes {
      */
     function _transferVotingUnits(address from, address to, uint256 value) internal virtual;
 
-    // NB: This had existed in this file (see above) but is now abstract instead for clarity.
     /**
-     * @dev Maximum token supply.
+     * @notice Anvil has a constant supply post-construction, so this can be hard-coded to `_maxSupply()`.
      *
-     * This maximum is enforced in {_update}. It limits the total supply of the token, which is otherwise a uint256,
-     * so that checkpoints can be stored in the Trace208 structure used by {{Votes}}. Increasing this value will not
-     * remove the underlying limitation, and will cause {_update} to fail because of a math overflow in
-     * {_transferVotingUnits}. An override could be used to further restrict the total supply (to a lower value) if
-     * additional logic requires it. When resolving override conflicts on this function, the minimum should be
-     * returned.
+     * @dev There is no future check because, although it is typically invalid to pass in a future timepoint, since
+     * Anvil has a constant supply, this can confidently return what the supply will be at that time.
      */
-    function _maxSupply() internal view virtual returns (uint256);
+    function getPastTotalSupply(uint256) public view virtual returns (uint256) {
+        return _maxSupply();
+    }
 }
