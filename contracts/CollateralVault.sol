@@ -60,7 +60,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
 
     /// account address => collateralizable contract address => token address => approved amount, set by account to
     /// allow specified amount of collateral to be used by the associated collateralizable contract.
-    mapping(address => mapping(address => mapping(address => int256))) public accountCollateralizableTokenAllowances;
+    mapping(address => mapping(address => mapping(address => uint256))) public accountCollateralizableTokenAllowances;
 
     /// contract address => approval, set by governance to [dis]allow use of this contract's ICollateral interface.
     mapping(address => bool) public collateralizableContracts;
@@ -143,7 +143,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _accountAddress,
         address _collateralizableContract,
         address _tokenAddress
-    ) public view returns (int256) {
+    ) public view returns (uint256) {
         return accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContract][_tokenAddress];
     }
 
@@ -194,8 +194,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
                 msg.sender,
                 _collateralizableContractAddressToApprove,
                 _tokenAddresses[i],
-                Pricing.safeCastToInt256(_amounts[i]),
-                true
+                Pricing.safeCastToInt256(_amounts[i])
             );
         }
     }
@@ -246,14 +245,13 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             _collateralizableDepositApprovalSignature
         );
 
-        int256 allowance = accountCollateralizableTokenAllowances[_accountAddress][msg.sender][_tokenAddress];
-        if (allowance < int256(_amount)) {
+        uint256 allowance = accountCollateralizableTokenAllowances[_accountAddress][msg.sender][_tokenAddress];
+        if (allowance < _amount) {
             _authorizedModifyCollateralizableTokenAllowance(
                 _accountAddress,
                 msg.sender,
                 _tokenAddress,
-                int256(_amount) - allowance,
-                true
+                int256(_amount - allowance)
             );
         }
 
@@ -280,8 +278,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             msg.sender,
             _collateralizableContractAddress,
             _tokenAddress,
-            _byAmount,
-            true
+            _byAmount
         );
     }
 
@@ -568,46 +565,47 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
      * @param _collateralizableContractAddress The collateralizable contract to which the allowance pertains.
      * @param _tokenAddress The token of the allowance being  modified.
      * @param _byAmount The signed integer amount (positive if adding to the allowance, negative otherwise).
-     * @param _emitAllowanceUpdated True if the AccountCollateralizableContractAllowanceUpdated event should be emitted.
      */
     function _authorizedModifyCollateralizableTokenAllowance(
         address _accountAddress,
         address _collateralizableContractAddress,
         address _tokenAddress,
-        int256 _byAmount,
-        bool _emitAllowanceUpdated
+        int256 _byAmount
     ) private {
-        int256 newAllowance;
-        int256 currentAllowance = accountCollateralizableTokenAllowances[_accountAddress][
+        uint256 newAllowance;
+        uint256 currentAllowance = accountCollateralizableTokenAllowances[_accountAddress][
             _collateralizableContractAddress
         ][_tokenAddress];
 
         if (_byAmount > 0) {
             unchecked {
-                newAllowance = currentAllowance + _byAmount;
+                newAllowance = currentAllowance + uint256(_byAmount);
             }
             if (newAllowance < currentAllowance) {
                 // This means we overflowed, but the intention was to increase the allowance, so set the allowance to the max.
-                newAllowance = type(int256).max;
+                newAllowance = type(uint256).max;
             }
         } else {
-            // NB: this is adding a negative (or zero), so subtracting.
-            newAllowance = currentAllowance + _byAmount;
+            unchecked {
+                newAllowance = currentAllowance - uint256(-_byAmount);
+            }
+            if (newAllowance > currentAllowance) {
+                // This means we underflowed, but the intention was to decrease the allowance, so set the allowance to 0.
+                newAllowance = 0;
+            }
         }
 
         accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContractAddress][
             _tokenAddress
         ] = newAllowance;
 
-        if (_emitAllowanceUpdated) {
-            emit AccountCollateralizableContractAllowanceUpdated(
-                _accountAddress,
-                _collateralizableContractAddress,
-                _tokenAddress,
-                _byAmount,
-                newAllowance
-            );
-        }
+        emit AccountCollateralizableContractAllowanceUpdated(
+            _accountAddress,
+            _collateralizableContractAddress,
+            _tokenAddress,
+            _byAmount,
+            newAllowance
+        );
     }
 
     /**
@@ -737,8 +735,6 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
 
             address account = reservationStorage.account;
             address tokenAddress = reservationStorage.tokenAddress;
-            // Add allowance back to collateralizable. Note: _byAmount is negative.
-            _authorizedModifyCollateralizableTokenAllowance(account, collateralizable, tokenAddress, -_byAmount, false);
 
             CollateralBalance storage balanceStorage = accountBalances[account][tokenAddress];
             balanceStorage.reserved -= byAmountUint;
@@ -809,8 +805,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             _accountAddress,
             _collateralizableContractAddress,
             _tokenAddress,
-            _allowanceAdjustment,
-            true
+            _allowanceAdjustment
         );
     }
 
@@ -827,15 +822,6 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         CollateralBalance storage balanceStorage = accountBalances[account][tokenAddress];
         balanceStorage.available += _totalCollateralReleased;
         balanceStorage.reserved -= _totalCollateralReleased;
-
-        // Add allowance back to collateralizable contract.
-        _authorizedModifyCollateralizableTokenAllowance(
-            account,
-            collateralizable,
-            tokenAddress,
-            Pricing.safeCastToInt256(_totalCollateralReleased),
-            false
-        );
 
         delete collateralReservations[_reservationId];
 
@@ -864,10 +850,10 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         if (!collateralizableContracts[_collateralizableAddress])
             revert ContractNotApprovedByProtocol(_collateralizableAddress);
 
-        int256 approvedAmount = accountCollateralizableTokenAllowances[_accountAddress][_collateralizableAddress][
+        uint256 approvedAmount = accountCollateralizableTokenAllowances[_accountAddress][_collateralizableAddress][
             _tokenAddress
         ];
-        if (approvedAmount <= 0 || uint256(approvedAmount) < _amount)
+        if (approvedAmount < _amount)
             revert InsufficientAllowance(
                 _collateralizableAddress,
                 _accountAddress,
@@ -878,7 +864,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
 
         accountCollateralizableTokenAllowances[_accountAddress][_collateralizableAddress][_tokenAddress] =
             approvedAmount -
-            Pricing.safeCastToInt256(_amount);
+            _amount;
     }
 
     /**

@@ -20,7 +20,7 @@ interface ICollateral is ICollateralDepositTarget {
         address _accountAddress,
         address _tokenAddress,
         uint256 _need,
-        int256 _have
+        uint256 _have
     );
     error InsufficientCollateral(uint256 _need, uint256 _have);
     error InvalidSignature(address _accountAddress);
@@ -43,7 +43,7 @@ interface ICollateral is ICollateralDepositTarget {
         address indexed contractAddress,
         address indexed tokenAddress,
         int256 modifiedByAmount,
-        int256 newTotal
+        uint256 newTotal
     );
     event AccountInitiatedUpgrade(
         address indexed account,
@@ -179,7 +179,7 @@ interface ICollateral is ICollateralDepositTarget {
         address _accountAddress,
         address _collateralizableContract,
         address _tokenAddress
-    ) external view returns (int256 _allowance);
+    ) external view returns (uint256 _allowance);
 
     /*** State-modifying functions ***/
 
