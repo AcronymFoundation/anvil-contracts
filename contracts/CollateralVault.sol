@@ -4,12 +4,12 @@ pragma solidity 0.8.25;
 import "./Pricing.sol";
 import "./interfaces/ICollateral.sol";
 import "./interfaces/ICollateralPool.sol";
+import "./SignatureNonces.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import "@openzeppelin/contracts/utils/Nonces.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /**
@@ -31,7 +31,7 @@ import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
  *
  * @custom:security-contact security@af.xyz
  */
-contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
+contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, SignatureNonces {
     using SafeERC20 for IERC20;
 
     /******************
@@ -486,6 +486,18 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
      * @notice Updates the `CollateralTokens` at the provided addresses. This permits adding new `CollateralTokens`
      * and/or disallowing future use of or updating the fields of an existing `CollateralToken`.
      * Note: this may only be done through governance.
+     *
+     * NOTE: Great care should be taken in reviewing tokens prior to addition, with the default being to disallow tokens
+     * if unsure. A few types of tokens are generally considered unsafe, however this is not an exhaustive list:
+     *   - Fee-on-transfer tokens. These tokens will result in erroneous accounting upon deposit actions as the amount
+     *   received by the vault will be lower than the provided deposit amount.
+     *   - Rebasing tokens. If the contract's balance is increasing after a rebase then the extra amount will be
+     *   eventually held by the CollateralVault contract as fee which is unfair to the depositors. On the other hand, if
+     *   after a token's rebase the contract's balance is decreasing, then the whole accounting is against the protocol
+     *   and any depositor can benefit until all the contract's funds are drained.
+     *   - Upgradeable token contracts. It is generally a risk to whitelist upgradeable contracts since their
+     *   implementation might be altered.
+     *
      * @dev Calling this with an `enabled` value of `false` disallows future use of this `CollateralToken` until it is
      * overridden by a subsequent call to this function setting it to `true`.
      * Calling this function has no impact on existing `CollateralReservations`. If a limit is decreased or the token is
@@ -792,7 +804,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
                         _collateralizableContractAddress,
                         _tokenAddress,
                         _allowanceAdjustment,
-                        _useNonce(_accountAddress)
+                        _useNonce(_accountAddress, COLLATERALIZABLE_TOKEN_ALLOWANCE_ADJUSTMENT_TYPEHASH)
                     )
                 )
             );
@@ -994,7 +1006,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
                     msg.sender,
                     _tokenAddress,
                     _amount,
-                    _useNonce(_accountAddress)
+                    _useNonce(_accountAddress, COLLATERALIZABLE_DEPOSIT_APPROVAL_TYPEHASH)
                 )
             )
         );
