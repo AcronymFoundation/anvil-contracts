@@ -122,6 +122,7 @@ contract Claim is IClaimable, Ownable2Step {
         uint256 _ownerRescueDelaySeconds
     ) external onlyOwner {
         if (address(token) != address(0)) revert AlreadyInitialized();
+        if (address(_token) == address(0)) revert InvalidInitialization();
         if (_balanceRoot == bytes32(0)) revert InvalidInitialization();
         if (_vestingPeriodSeconds == 0) revert InvalidInitialization();
         token = _token;
