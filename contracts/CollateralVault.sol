@@ -291,6 +291,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
      * @inheritdoc ICollateral
      */
     function poolCollateral(address _accountAddress, address _tokenAddress, uint256 _amount) external {
+        if (!collateralTokens[_tokenAddress].enabled) revert TokenNotAllowed(_tokenAddress);
+
         _requireCollateralizableAndDecreaseApprovedAmount(msg.sender, _accountAddress, _tokenAddress, _amount);
 
         _transferCollateral(_tokenAddress, _accountAddress, _amount, msg.sender);
