@@ -119,7 +119,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * @dev This assumes the caller can and will use the tokenEpochExitBalances mapping if an entry exists for the epoch
      * in question, so it operates on contract-level pending unstakes, assuming an entry does not exist.
      * @param _tokenAddress The address of the token for the ExitBalance.
-     * @param _epoch The epoch of for the ExitBalance.
+     * @param _epoch The epoch of the ExitBalance.
      * @return _units The units of the ExitBalance, 0 if there is no pending unstake for the epoch in question.
      * @return _tokens The tokens of the ExitBalance, 0 if there is no pending unstake for the epoch in question.
      */
@@ -500,7 +500,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * @param _claimant (optional) The address that will be granted the CLAIMANT_ROLE, allowing it to call `claim(...)`.
      * @param _claimRouter (optional) The address that will be granted the CLAIM_ROUTER_ROLE, allowing it to update
      * the defaultClaimDestinationAccount and tokenClaimDestinationAccountOverrides mapping.
-     * @param _resetter (optional) The address that will be grated the RESETTER_ROLE, allowing it to call `reset(...)`.
+     * @param _resetter (optional) The address that will be granted the RESETTER_ROLE, allowing it to call `reset(...)`.
      */
     constructor(
         ICollateral _collateral,
@@ -876,7 +876,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     }
 
     /**
-     * @dev Releases all vested unstakes from the the `accountTokenState` struct for the provided token and account.
+     * @dev Releases all vested unstakes from the `accountTokenState` struct for the provided token and account.
      * @param _account The address of the account for which vested unstakes will be released.
      * @param _tokenAddress The address of the ERC-20 token to be released.
      * @return _poolWasReset Whether or not the pool was reset as a result of this call.

@@ -119,7 +119,7 @@ abstract contract AnvilVotes is Context, EIP712, Nonces, IERC5805 {
     //        return _totalCheckpoints.upperLookupRecent(SafeCast.toUint48(timepoint));
     //    }
 
-    // NB: This is commented out because it no longer used.
+    // NB: This is commented out because it is no longer used.
     //    /**
     //     * @dev Returns the current total supply of votes.
     //     */

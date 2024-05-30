@@ -24,7 +24,7 @@ library Pricing {
     /**
      * @notice Calculates the collateral factor implied by the provided amounts of collateral and credited tokens.
      * @param _collateralTokenAmount The amount of the collateral token.
-     * @param _creditedTokenAmount The amount of the credited token token.
+     * @param _creditedTokenAmount The amount of the credited token.
      * @param _price The price of the market in which the collateral is the input token and credited is the output token.
      * @return The calculated collateral factor in basis points.
      */
@@ -42,7 +42,7 @@ library Pricing {
     }
 
     /**
-     * @notice Calculates the amount of the credited token the provided collateral would yield, give the provided price.
+     * @notice Calculates the amount of the credited token the provided collateral would yield, given the provided price.
      * @param _collateralTokenAmount The amount of the collateral token.
      * @param _price The price of the market in which the collateral is the input token and credited is the output token.
      * @return _creditedTokenAmount The calculated amount of the credited token.
@@ -82,7 +82,7 @@ library Pricing {
 
     /**
      * @notice Given an amount with a relative fee baked in, returns the amount before the fee was added.
-     * @dev This is the exact reverse of the `amountBeforeFee` function. Please note that calling one
+     * @dev This is the exact reverse of the `amountWithFee` function. Please note that calling one
      * and then the other is not guaranteed to produce the starting value due to integer math.
      * @param _amountWithFee The amount that includes the provided fee in its value.
      * @param _feeBasisPoints The basis points value of the fee baked into the provided amount.
