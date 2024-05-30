@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  *   - _getVotingUnits(...) is removed, as it is no longer required by the parent contract.
  *   - _maxSupply(...) is updated to a hard-coded value.
  *   - _transferVotingUnits(...) is declared as abstract in this file (it originally was in Votes.sol, but it is no longer necessary there.)
+ *
+ * @custom:security-contact security@af.xyz
  */
 abstract contract AnvilERC20Votes is ERC20, AnvilVotes {
     /**

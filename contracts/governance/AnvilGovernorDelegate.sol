@@ -15,8 +15,10 @@ import "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import "hardhat/console.sol";
 
 /**
- * @notice This is the initial Governor contract that is delegated to by `AnvilGovernorDelegate` for the Anvil protocol
+ * @title This is the initial Governor contract that is delegated to by `AnvilGovernorDelegate` for the Anvil protocol
  * to implement governance logic.
+ *
+ * @custom:security-contact security@af.xyz
  */
 contract AnvilGovernorDelegate is
     GovernorUpgradeable,

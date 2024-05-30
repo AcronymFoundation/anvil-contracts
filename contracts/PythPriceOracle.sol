@@ -11,8 +11,10 @@ import "./Pricing.sol";
 import "./Refundable.sol";
 
 /**
- * Pyth implementation of IPriceOracle, acting as an adapter to allow LetterOfCredit and other contracts that use
+ * @title Pyth implementation of IPriceOracle, acting as an adapter to allow LetterOfCredit and other contracts that use
  * IPriceOracle to integrate with Pyth.
+ *
+ * @custom:security-contact security@af.xyz
  */
 contract PythPriceOracle is Ownable2Step, IPriceOracle, ERC165, Refundable {
     /***************

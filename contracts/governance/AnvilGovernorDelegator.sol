@@ -4,8 +4,10 @@ pragma solidity 0.8.25;
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
- * @notice This is the upgradable proxy contract that delegates Anvil protocol governance logic to the implementation,
+ * @title This is the upgradable proxy contract that delegates Anvil protocol governance logic to the implementation,
  * providing a consistent governor address along with upgradability.
+ *
+ * @custom:security-contact security@af.xyz
  */
 // solc-ignore-next-line missing-receive
 contract AnvilGovernorDelegator is ERC1967Proxy {

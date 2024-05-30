@@ -25,6 +25,8 @@ import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
  *   - _delagatee and _delegateCheckpoints fields are internal now rather than private.
  *
  *  The original Votes.sol is intact below with modifications called out and original logic commented out where applicable.
+ *
+ * @custom:security-contact security@af.xyz
  */
 abstract contract AnvilVotes is Context, EIP712, Nonces, IERC5805 {
     using Checkpoints for Checkpoints.Trace208;

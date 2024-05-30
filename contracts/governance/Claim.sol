@@ -15,6 +15,8 @@ import "./IClaimable.sol";
  * Note: only the associated token contract is able to call `proveInitialBalance(...)`, so this contract is very tightly-
  * coupled to tokens that resemble the Anvil token, that is to say governance tokens that permit accounts with balances
  * in this Claim contract to be delegated and used in voting.
+ *
+ * @custom:security-contact security@af.xyz
  */
 contract Claim is IClaimable, Ownable2Step {
     /***************

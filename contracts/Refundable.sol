@@ -2,8 +2,10 @@
 pragma solidity 0.8.25;
 
 /**
- * Base contract that can be extended to pull in `refundExcess` modifier, which ensures that the ETH balance of a
+ * @title Base contract that can be extended to pull in `refundExcess` modifier, which ensures that the ETH balance of a
  * contract is not increased as a result of a function call.
+ *
+ * @custom:security-contact security@af.xyz
  */
 abstract contract Refundable {
     /**

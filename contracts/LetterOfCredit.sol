@@ -16,6 +16,8 @@ import "./interfaces/ILetterOfCredit.sol";
 
 /**
  * @title Contract for the creation, management, and redemption of collateralized Letters of Credit (LOCs) between parties.
+ *
+ * @custom:security-contact security@af.xyz
  */
 contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, ReentrancyGuard, Refundable {
     using SafeERC20 for IERC20;

@@ -17,7 +17,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  *
  * This contract allows stakers to pool their collateral tokens such that they have a proportional amount of the overall
  * pool risk. Stakers are able to withdraw (release) their stake from the pool when their unstake vests at end of the
- * epoch following the one in which they unstake (`releaseEpoch` = `unstakeEpoch + 1`). Tokens are claimable up until the point that they are eligible for release (in `releaseEpoch`).
+ * epoch following the one in which they unstake (`releaseEpoch` = `unstakeEpoch + 1`). Tokens are claimable up until
+ * the point that they are eligible for release (in `releaseEpoch`).
+ *
+ * @custom:security-contact security@af.xyz
  */
 contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, ERC165, AccessControl {
     using SafeERC20 for IERC20;

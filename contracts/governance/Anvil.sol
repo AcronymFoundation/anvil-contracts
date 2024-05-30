@@ -17,6 +17,8 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
  *
  * Note: The ERC20Votes / Votes contract logic needed to be copied rather than extended because there are a number of
  * functions and members that need to be accessed or overridden but cannot be because they are private.
+ *
+ * @custom:security-contact security@af.xyz
  */
 contract Anvil is AnvilERC20Votes {
     using Checkpoints for Checkpoints.Trace208;

@@ -30,6 +30,8 @@ import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
  * The specific ERC-20 tokens permitted for use as collateral within this contract and their usage limits may vary over
  * time through governance. If an existing token is disallowed in the future, existing CollateralReservations will be
  * honored, but no new collateral reservations may be created for that token.
+ *
+ * @custom:security-contact security@af.xyz
  */
 contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
     using SafeERC20 for IERC20;
