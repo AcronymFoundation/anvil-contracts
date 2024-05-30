@@ -1,18 +1,11 @@
 // SPDX-License-Identifier: ISC
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol";
 
 /**
- * @notice Vanilla OpenZeppelin TimelockControllerUpgradeable implementation.
+ * @notice Vanilla OpenZeppelin TimelockController implementation.
  */
-contract AnvilTimelock is TimelockControllerUpgradeable {
-    function initialize(
-        uint256 minDelay,
-        address[] memory proposers,
-        address[] memory executors,
-        address admin
-    ) external initializer {
-        __TimelockController_init(minDelay, proposers, executors, admin);
-    }
+contract AnvilTimelock is TimelockController {
+    constructor(uint256 _minDelay) TimelockController(_minDelay, new address[](0), new address[](0), msg.sender) {}
 }
