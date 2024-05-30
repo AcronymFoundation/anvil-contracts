@@ -10,6 +10,7 @@ interface ITimeBasedCollateralPool {
 
     error InvalidZeroAddress();
     error InvalidZeroAmount();
+    error DepositTooLarge();
     error InsufficientBalance(uint256 need, uint256 have);
     error InsufficientClaimable(uint256 need, uint256 have);
     error InsufficientReleasable(uint256 need, uint256 have);

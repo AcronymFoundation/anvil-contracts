@@ -1078,26 +1078,41 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         collateral.poolCollateral(msg.sender, address(_token), _amount);
 
         uint96 reservationId = tokenContractState[address(_token)].collateralReservationId;
+        uint256 poolTotalUnitsAfter;
+        uint256 poolTotalTokensAfter;
         if (reservationId == 0) {
             _poolUnitsIssued = _amount;
             (reservationId, ) = collateral.reserveCollateral(address(this), address(_token), _amount);
             tokenContractState[address(_token)].collateralReservationId = reservationId;
             tokenContractState[address(_token)].totalUnits = _poolUnitsIssued;
             accountTokenState[msg.sender][address(_token)].totalUnits = _poolUnitsIssued;
+
+            poolTotalUnitsAfter = _poolUnitsIssued;
+            poolTotalTokensAfter = _amount;
         } else {
-            (uint256 poolTokensAfterAddition, ) = collateral.modifyCollateralReservation(
+            (poolTotalTokensAfter, ) = collateral.modifyCollateralReservation(
                 reservationId,
                 Pricing.safeCastToInt256(_amount)
             );
             uint256 poolUnits = tokenContractState[address(_token)].totalUnits;
-            _poolUnitsIssued = Pricing.calculateProportionOfTotal(
-                _amount,
-                poolTokensAfterAddition - _amount,
-                poolUnits
-            );
+            _poolUnitsIssued = Pricing.calculateProportionOfTotal(_amount, poolTotalTokensAfter - _amount, poolUnits);
 
-            tokenContractState[address(_token)].totalUnits = poolUnits + _poolUnitsIssued;
+            poolTotalUnitsAfter = poolUnits + _poolUnitsIssued;
+
+            tokenContractState[address(_token)].totalUnits = poolTotalUnitsAfter;
             accountTokenState[msg.sender][address(_token)].totalUnits += _poolUnitsIssued;
+        }
+
+        {
+            uint256 product;
+            unchecked {
+                product = (poolTotalTokensAfter * poolTotalUnitsAfter) / poolTotalUnitsAfter;
+            }
+            // This means that the contract will not be able to process withdrawals without overflowing, so must revert.
+            // This can happen because the pool is empty, but the number of tokens being deposited is > 2**128 - 1
+            // or if pool units have been diluted enough to make the units issued for this deposit very large.
+            // If the latter, the pool should be reset.
+            if (product != poolTotalTokensAfter) revert DepositTooLarge();
         }
 
         emit CollateralStaked(msg.sender, _token, _amount, _poolUnitsIssued);
