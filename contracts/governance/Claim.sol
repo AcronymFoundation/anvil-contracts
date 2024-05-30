@@ -186,7 +186,7 @@ contract Claim is IClaimable, Ownable2Step {
         // If repurposing this contract, update to suit your needs.
         token.transfer(_destination, amount);
 
-        emit FundsRescued(_destination, uint256(amount));
+        emit FundsRescued(_destination, amount);
     }
 
     /**
