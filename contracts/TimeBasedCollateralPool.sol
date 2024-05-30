@@ -604,7 +604,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         IERC20 _token,
         uint256 _amount,
         bytes calldata _collateralizableDepositApprovalSignature
-    ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256 _poolUnitsIssued) {
+    ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256) {
         collateral.depositFromAccount(msg.sender, address(_token), _amount, _collateralizableDepositApprovalSignature);
 
         return _stake(_token, _amount);
@@ -659,7 +659,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         IERC20 _token,
         uint256 _amount,
         bytes calldata _collateralizableApprovalSignature
-    ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256 _poolUnitsIssued) {
+    ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256) {
         if (_collateralizableApprovalSignature.length > 0) {
             collateral.modifyCollateralizableTokenAllowanceWithSignature(
                 msg.sender,
@@ -681,7 +681,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         IERC20 _token,
         uint256 _amount,
         bytes calldata _collateralizableApprovalSignature
-    ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256 _poolUnitsIssued) {
+    ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256) {
         if (address(_pool) != address(this)) {
             IERC20[] memory tokens = new IERC20[](1);
             tokens[0] = _token;

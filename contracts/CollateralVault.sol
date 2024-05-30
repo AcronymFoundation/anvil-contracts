@@ -96,8 +96,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
     /**
      * @inheritdoc ICollateral
      */
-    function getCollateralToken(address _tokenAddress) public view returns (CollateralToken memory _token) {
-        _token = collateralTokens[_tokenAddress];
+    function getCollateralToken(address _tokenAddress) public view returns (CollateralToken memory) {
+        return collateralTokens[_tokenAddress];
     }
 
     /**
@@ -107,21 +107,19 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _accountAddress,
         address _tokenAddress
     ) public view returns (CollateralBalance memory _balance) {
-        _balance = accountBalances[_accountAddress][_tokenAddress];
+        return accountBalances[_accountAddress][_tokenAddress];
     }
 
     /**
      * @inheritdoc ICollateral
      */
-    function getCollateralReservation(
-        uint96 _reservationId
-    ) public view returns (CollateralReservation memory _reservation) {
-        _reservation = collateralReservations[_reservationId];
+    function getCollateralReservation(uint96 _reservationId) public view returns (CollateralReservation memory) {
+        return collateralReservations[_reservationId];
     }
 
     /// Gets the claimable amount for the provided CollateralReservation, accounting for fees.
-    function getClaimableAmount(uint96 _reservationId) public view returns (uint256 _claimable) {
-        _claimable = collateralReservations[_reservationId].claimableTokenAmount;
+    function getClaimableAmount(uint96 _reservationId) public view returns (uint256) {
+        return collateralReservations[_reservationId].claimableTokenAmount;
     }
 
     /**
@@ -131,8 +129,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _accountAddress,
         address _collateralizableContract,
         address _tokenAddress
-    ) public view returns (int256 _allowance) {
-        _allowance = accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContract][_tokenAddress];
+    ) public view returns (int256) {
+        return accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContract][_tokenAddress];
     }
 
     /**
@@ -211,7 +209,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         uint256 _amountToReceive,
         address _toAddress,
         bool _releaseRemainder
-    ) external returns (uint256 _remainingReservedCollateral, uint256 _remainingClaimableCollateral) {
+    ) external returns (uint256, uint256) {
         return _claimCollateral(_reservationId, _amountToReceive, _toAddress, _releaseRemainder);
     }
 

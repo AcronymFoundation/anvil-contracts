@@ -70,21 +70,21 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
      ***********/
 
     /// Getter for locs so that contract callers may get strongly-typed LOCs.
-    function getLOC(uint96 _id) public view returns (LOC memory _loc) {
-        _loc = locs[_id];
+    function getLOC(uint96 _id) public view returns (LOC memory) {
+        return locs[_id];
     }
 
     /// Getter for creditedTokens so that contract callers may get strongly-typed CreditedTokens.
-    function getCreditedToken(address _address) public view returns (CreditedToken memory _token) {
-        _token = creditedTokens[_address];
+    function getCreditedToken(address _address) public view returns (CreditedToken memory) {
+        return creditedTokens[_address];
     }
 
     /// Getter for collateralToCreditedToCollateralFactors so that contract callers may get strongly-typed CollateralFactors.
     function getCollateralFactor(
         address _collateralTokenAddress,
         address _creditedTokenAddress
-    ) public view returns (CollateralFactor memory _collateralFactor) {
-        _collateralFactor = collateralToCreditedToCollateralFactors[_collateralTokenAddress][_creditedTokenAddress];
+    ) public view returns (CollateralFactor memory) {
+        return collateralToCreditedToCollateralFactors[_collateralTokenAddress][_creditedTokenAddress];
     }
 
     /***********

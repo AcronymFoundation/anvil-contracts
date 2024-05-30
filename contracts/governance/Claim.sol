@@ -82,11 +82,11 @@ contract Claim is IClaimable, Ownable2Step {
     /**
      * @notice Returns the proven unclaimed balance for the provided account.
      * @param _forAccount The account for which the proven unclaimed balance will be returned.
-     * @return _provenUnclaimedBalance The proven unclaimed balance.
+     * @return The proven unclaimed balance.
      */
-    function getProvenUnclaimedBalance(address _forAccount) public view returns (uint256 _provenUnclaimedBalance) {
+    function getProvenUnclaimedBalance(address _forAccount) public view returns (uint256) {
         Balance storage provenBalanceStorage = provenBalances[_forAccount];
-        _provenUnclaimedBalance = uint256(provenBalanceStorage.initial - provenBalanceStorage.claimed);
+        return uint256(provenBalanceStorage.initial - provenBalanceStorage.claimed);
     }
 
     /*****************************
@@ -196,7 +196,7 @@ contract Claim is IClaimable, Ownable2Step {
         address _address,
         uint256 _initialBalance,
         bytes32[] calldata _proof
-    ) external returns (uint256 _newlyProvenAmount) {
+    ) external returns (uint256) {
         if (msg.sender != address(token)) revert Unauthorized();
 
         Balance storage provenBalanceStorage = provenBalances[_address];

@@ -21,13 +21,13 @@ library Pricing {
      * @param _collateralTokenAmount The amount of the collateral token.
      * @param _creditedTokenAmount The amount of the credited token token.
      * @param _price The price of the market in which the collateral is the input token and credited is the output token.
-     * @return _collateralFactorBasisPoints The calculated collateral factor in basis points.
+     * @return The calculated collateral factor in basis points.
      */
     function collateralFactorInBasisPoints(
         uint256 _collateralTokenAmount,
         uint256 _creditedTokenAmount,
         OraclePrice memory _price
-    ) internal pure returns (uint16 _collateralFactorBasisPoints) {
+    ) internal pure returns (uint16) {
         uint256 collateralInCredited = collateralAmountInCreditedToken(_collateralTokenAmount, _price);
         // Don't divide by 0
         if (collateralInCredited == 0) {
@@ -45,7 +45,7 @@ library Pricing {
     function collateralAmountInCreditedToken(
         uint256 _collateralTokenAmount,
         OraclePrice memory _price
-    ) internal pure returns (uint256 _creditedTokenAmount) {
+    ) internal pure returns (uint256) {
         if (_price.exponent < 0) {
             return (_collateralTokenAmount * _price.price) / (10 ** uint256(int256(-1 * _price.exponent)));
         } else {
@@ -81,10 +81,10 @@ library Pricing {
      * and then the other is not guaranteed to produce the starting value due to integer math.
      * @param _amountWithFee The amount that includes the provided fee in its value.
      * @param _feeBasisPoints The basis points value of the fee baked into the provided amount.
-     * @return _amount The value of _amountWithFee before the _feeBasisPoints was added to it.
+     * @return The value of _amountWithFee before the _feeBasisPoints was added to it.
      */
-    function amountBeforeFee(uint256 _amountWithFee, uint16 _feeBasisPoints) internal pure returns (uint256 _amount) {
-        _amount = (_amountWithFee * 10_000) / (10_000 + _feeBasisPoints);
+    function amountBeforeFee(uint256 _amountWithFee, uint16 _feeBasisPoints) internal pure returns (uint256) {
+        return (_amountWithFee * 10_000) / (10_000 + _feeBasisPoints);
     }
 
     /**
@@ -113,12 +113,12 @@ library Pricing {
     /**
      * @dev Safely casts the provided uint256 to an int256, reverting with CastOverflow on overflow.
      * @param _input The input uint256 to cast.
-     * @return _casted The safely casted uint256.
+     * @return The safely casted uint256.
      */
-    function safeCastToInt256(uint256 _input) internal pure returns (int256 _casted) {
+    function safeCastToInt256(uint256 _input) internal pure returns (int256) {
         if (_input > uint256(type(int256).max)) {
             revert CastOverflow(_input);
         }
-        _casted = int256(_input);
+        return int256(_input);
     }
 }

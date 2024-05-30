@@ -172,7 +172,7 @@ contract PythPriceOracle is Ownable2Step, IPriceOracle, ERC165, Refundable {
         address _inputTokenAddress,
         address _outputTokenAddress,
         bytes calldata _oracleData
-    ) external payable refundExcess returns (Pricing.OraclePrice memory _price) {
+    ) external payable refundExcess returns (Pricing.OraclePrice memory) {
         _fetchAndValidateTokenInfo(_inputTokenAddress);
         _fetchAndValidateTokenInfo(_outputTokenAddress);
 
@@ -183,15 +183,15 @@ contract PythPriceOracle is Ownable2Step, IPriceOracle, ERC165, Refundable {
 
         pythContract.updatePriceFeeds{value: fee}(updateData);
 
-        _price = this.getPrice(_inputTokenAddress, _outputTokenAddress);
+        return this.getPrice(_inputTokenAddress, _outputTokenAddress);
     }
 
     /*
      * @inheritdoc IPriceOracle
      */
-    function getUpdateFee(bytes calldata _oracleData) external view returns (uint256 _feeAmount) {
+    function getUpdateFee(bytes calldata _oracleData) external view returns (uint256) {
         bytes[] memory updateData = abi.decode(_oracleData, (bytes[]));
-        _feeAmount = pythContract.getUpdateFee(updateData);
+        return pythContract.getUpdateFee(updateData);
     }
 
     /***********
