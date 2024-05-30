@@ -27,6 +27,7 @@ interface ICollateral is ICollateralDepositTarget {
     error InvalidSignature(address _accountAddress);
     error InvalidTargetAddress(address _address);
     error InvalidUpgradeTarget(address _contract);
+    error InvalidZeroAmount();
     error MaxTokenBalanceExceeded(uint256 _wouldBeValue, uint256 _max);
     error RelatedArraysLengthMismatch(uint256 _firstLength, uint256 _secondLength);
     error TokenNotAllowed(address _address);

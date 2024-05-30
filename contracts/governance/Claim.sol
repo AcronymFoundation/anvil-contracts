@@ -27,6 +27,7 @@ contract Claim is IClaimable, Ownable2Step {
     error InvalidProof();
     error NoClaimableTokens();
     error OwnerRescueTooSoon();
+    error RescueDestinationHasInitialBalance();
     error VestingPeriodNotStarted();
     error InvalidInitialization();
 
@@ -83,7 +84,7 @@ contract Claim is IClaimable, Ownable2Step {
      * @param _forAccount The account for which the proven unclaimed balance will be returned.
      * @return _provenUnclaimedBalance The proven unclaimed balance.
      */
-    function getProvenUnclaimedBalance(address _forAccount) external view returns (uint256 _provenUnclaimedBalance) {
+    function getProvenUnclaimedBalance(address _forAccount) public view returns (uint256 _provenUnclaimedBalance) {
         Balance storage provenBalanceStorage = provenBalances[_forAccount];
         _provenUnclaimedBalance = uint256(provenBalanceStorage.initial - provenBalanceStorage.claimed);
     }
@@ -174,6 +175,7 @@ contract Claim is IClaimable, Ownable2Step {
      */
     function ownerRescueTokens(address _destination) external onlyOwner {
         if (block.timestamp < ownerRescueTimestamp) revert OwnerRescueTooSoon();
+        if (getProvenUnclaimedBalance(_destination) > 0) revert RescueDestinationHasInitialBalance();
 
         delete balanceRoot;
 

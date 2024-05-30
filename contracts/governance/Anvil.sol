@@ -94,7 +94,7 @@ contract Anvil is AnvilERC20Votes {
             uint256 provenUnclaimed = accountProvenUnclaimedAmount[to];
             if (provenUnclaimed > 0) {
                 // A claim is happening -- no voting power will be updated.
-                // NB: The Claim contract ownerRescueTokens destination CANNOT have an initial claim contract balance.
+                // NB: Claim contract rescue destination should not have a claimable balance so this should never be entered for token rescue.
                 // If it does, rescue will be treated as a claim until there is no unclaimed amount left, possibly causing this line to underflow.
                 accountProvenUnclaimedAmount[to] = provenUnclaimed - amount;
             } else {

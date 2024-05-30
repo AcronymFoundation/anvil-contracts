@@ -559,6 +559,8 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * @inheritdoc ITimeBasedCollateralPool
      */
     function claim(IERC20[] calldata _tokens, uint256[] calldata _amounts) external onlyRole(CLAIMANT_ROLE) {
+        if (_tokens.length != _amounts.length) revert RelatedArraysLengthMismatch(_tokens.length, _amounts.length);
+
         for (uint256 i = 0; i < _tokens.length; i++) {
             uint256 amount = _amounts[i];
             if (amount == 0) {

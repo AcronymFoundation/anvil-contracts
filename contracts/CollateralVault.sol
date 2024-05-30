@@ -391,6 +391,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
      * @inheritdoc ICollateral
      */
     function withdraw(address _tokenAddress, uint256 _amount, address _destinationAddress) external {
+        if (_amount == 0) revert InvalidZeroAmount();
         uint256 available = accountBalances[msg.sender][_tokenAddress].available;
         if (available < _amount) revert InsufficientCollateral(_amount, available);
         if (_destinationAddress == address(0)) revert InvalidTargetAddress(_destinationAddress);
