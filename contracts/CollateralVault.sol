@@ -3,12 +3,10 @@ pragma solidity 0.8.25;
 
 import "./Pricing.sol";
 import "./interfaces/ICollateral.sol";
-import "./interfaces/ICollateralDepositTarget.sol";
 import "./interfaces/ICollateralPool.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/utils/Nonces.sol";

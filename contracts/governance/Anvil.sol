@@ -3,10 +3,7 @@ pragma solidity 0.8.25;
 
 import "./IClaimable.sol";
 import "./AnvilERC20Votes.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
  * @title Anvil Token
