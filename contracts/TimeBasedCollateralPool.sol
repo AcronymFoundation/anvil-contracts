@@ -331,48 +331,33 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
             uint256 secondEpoch = contractState.secondPendingUnstakeEpoch;
             uint256 firstEpoch = contractState.firstPendingUnstakeEpoch;
 
-            // claimable this epoch
-            if (secondEpoch > 0 && secondEpoch < currentEpoch) {
-                unitsUnstaked = contractState.firstPendingUnstakeUnits + contractState.secondPendingUnstakeUnits;
-            } else if (firstEpoch > 0 && firstEpoch < currentEpoch) {
-                unitsUnstaked = contractState.firstPendingUnstakeUnits;
-            }
+            for (uint256 epochAdjustment = 0; epochAdjustment < 2; epochAdjustment++) {
+                // claimable this epoch
+                if (secondEpoch > 0 && secondEpoch < currentEpoch + epochAdjustment) {
+                    unitsUnstaked = contractState.firstPendingUnstakeUnits + contractState.secondPendingUnstakeUnits;
+                } else if (firstEpoch > 0 && firstEpoch < currentEpoch + epochAdjustment) {
+                    unitsUnstaked = contractState.firstPendingUnstakeUnits;
+                }
 
-            uint256 tokensUnstaked = Pricing.calculateProportionOfTotal(
-                unitsUnstaked,
-                totalUnits,
-                reservation.tokenAmount
-            );
-            if (tokensUnstaked == 0) {
-                _claimableCollateral[i].amountClaimableUntilEndOfCurrentEpoch = reservation.claimableTokenAmount;
-            } else {
-                // NB: Need to calculate claimable amount from reserved amount because that's how CollateralVault does it.
-                // Otherwise truncation can cause off by one issues in which a higher claimable amount is advertised.
-                uint256 stakedAmountRemaining = reservation.tokenAmount - tokensUnstaked;
-                _claimableCollateral[i].amountClaimableUntilEndOfCurrentEpoch = Pricing.amountBeforeFee(
-                    stakedAmountRemaining,
-                    reservation.feeBasisPoints
+                uint256 claimable;
+                uint256 tokensUnstaked = Pricing.calculateProportionOfTotal(
+                    unitsUnstaked,
+                    totalUnits,
+                    reservation.tokenAmount
                 );
-            }
-
-            // claimable next epoch
-            if (secondEpoch > 0 && secondEpoch < currentEpoch + 1) {
-                unitsUnstaked = contractState.firstPendingUnstakeUnits + contractState.secondPendingUnstakeUnits;
-            } else if (firstEpoch > 0 && firstEpoch < currentEpoch + 1) {
-                unitsUnstaked = contractState.firstPendingUnstakeUnits;
-            }
-
-            tokensUnstaked = Pricing.calculateProportionOfTotal(unitsUnstaked, totalUnits, reservation.tokenAmount);
-            if (tokensUnstaked == 0) {
-                _claimableCollateral[i].amountClaimableUntilEndOfNextEpoch = reservation.claimableTokenAmount;
-            } else {
-                // NB: Need to calculate claimable amount from reserved amount because that's how CollateralVault does it.
-                // Otherwise truncation can cause off by one issues in which a higher claimable amount is advertised.
-                uint256 stakedAmountRemaining = reservation.tokenAmount - tokensUnstaked;
-                _claimableCollateral[i].amountClaimableUntilEndOfNextEpoch = Pricing.amountBeforeFee(
-                    stakedAmountRemaining,
-                    reservation.feeBasisPoints
-                );
+                if (tokensUnstaked == 0) {
+                    claimable = reservation.claimableTokenAmount;
+                } else {
+                    // NB: Need to calculate claimable amount from reserved amount because that's how CollateralVault does it.
+                    // Otherwise truncation can cause off by one issues in which a higher claimable amount is advertised.
+                    uint256 stakedAmountRemaining = reservation.tokenAmount - tokensUnstaked;
+                    claimable = Pricing.amountBeforeFee(stakedAmountRemaining, reservation.feeBasisPoints);
+                }
+                if (epochAdjustment == 0) {
+                    _claimableCollateral[i].amountClaimableUntilEndOfCurrentEpoch = claimable;
+                } else {
+                    _claimableCollateral[i].amountClaimableUntilEndOfNextEpoch = claimable;
+                }
             }
         }
     }

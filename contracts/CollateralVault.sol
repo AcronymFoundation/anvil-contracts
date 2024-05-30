@@ -182,7 +182,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
                 msg.sender,
                 _collateralizableContractAddressToApprove,
                 _tokenAddresses[i],
-                Pricing.safeCastToInt256(_amounts[i])
+                Pricing.safeCastToInt256(_amounts[i]),
+                true
             );
         }
     }
@@ -235,11 +236,12 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
 
         int256 allowance = accountCollateralizableTokenAllowances[_accountAddress][msg.sender][_tokenAddress];
         if (allowance < int256(_amount)) {
-            _addAccountCollateralizableTokenAllowance(
+            _authorizedModifyCollateralizableTokenAllowance(
                 _accountAddress,
                 msg.sender,
                 _tokenAddress,
-                uint256(int256(_amount) - allowance)
+                int256(_amount) - allowance,
+                true
             );
         }
 
@@ -266,7 +268,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             msg.sender,
             _collateralizableContractAddress,
             _tokenAddress,
-            _byAmount
+            _byAmount,
+            true
         );
     }
 
@@ -544,72 +547,53 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
      ********************************/
 
     /**
-     * @dev Adds the provided amount to the account's allowance for the provided collateralizable and token. If adding
-     * the provided amount would cause the allowance to overflow, it sets it to the max int256 rather than reverting.
-     * @param _accountAddress The address of the account for which the allowance is being modified.
-     * @param _collateralizableAddress The address of the contract to which the allowance modification pertains.
-     * @param _tokenAddress The token for the allowance.
-     * @param _amountToAdd The amount to add to the allowance.
-     * @return _newAllowance The new allowance after the addition. Note: this may not be old + _amountToAdd due to overflow.
-     */
-    function _addAccountCollateralizableTokenAllowance(
-        address _accountAddress,
-        address _collateralizableAddress,
-        address _tokenAddress,
-        uint256 _amountToAdd
-    ) private returns (int256 _newAllowance) {
-        int256 allowance = accountCollateralizableTokenAllowances[_accountAddress][_collateralizableAddress][
-            _tokenAddress
-        ];
-        unchecked {
-            _newAllowance = allowance + Pricing.safeCastToInt256(_amountToAdd);
-        }
-        if (_newAllowance < allowance) {
-            // This means we overflowed, but the intention was to increase the allowance, so set the allowance to the max.
-            _newAllowance = type(int256).max;
-        }
-        accountCollateralizableTokenAllowances[_accountAddress][_collateralizableAddress][
-            _tokenAddress
-        ] = _newAllowance;
-    }
-
-    /**
-     * Same as the public function with a similar name, but authorization is assumed to have been done by the caller,
-     * so this function takes the account address for which the allowance is being modified as a parameter.
+     * @notice Modifies the allowance of the provided collateralizable contract for the provided token and account by
+     * the provided amount.
+     * @dev It is assumed to have been done by the caller.
+     * @param _accountAddress The account for which the allowance is being modified.
+     * @param _collateralizableContractAddress The collateralizable contract to which the allowance pertains.
+     * @param _tokenAddress The token of the allowance being  modified.
+     * @param _byAmount The signed integer amount (positive if adding to the allowance, negative otherwise).
+     * @param _emitAllowanceUpdated True if the AccountCollateralizableContractAllowanceUpdated event should be emitted.
      */
     function _authorizedModifyCollateralizableTokenAllowance(
         address _accountAddress,
         address _collateralizableContractAddress,
         address _tokenAddress,
-        int256 _byAmount
+        int256 _byAmount,
+        bool _emitAllowanceUpdated
     ) private {
-        int256 newAmount;
+        int256 newAllowance;
+        int256 currentAllowance = accountCollateralizableTokenAllowances[_accountAddress][
+            _collateralizableContractAddress
+        ][_tokenAddress];
+
         if (_byAmount > 0) {
-            newAmount = _addAccountCollateralizableTokenAllowance(
+            unchecked {
+                newAllowance = currentAllowance + _byAmount;
+            }
+            if (newAllowance < currentAllowance) {
+                // This means we overflowed, but the intention was to increase the allowance, so set the allowance to the max.
+                newAllowance = type(int256).max;
+            }
+        } else {
+            // NB: this is adding a negative, so subtracting.
+            newAllowance = currentAllowance + _byAmount;
+        }
+
+        accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContractAddress][
+            _tokenAddress
+        ] = newAllowance;
+
+        if (_emitAllowanceUpdated) {
+            emit AccountCollateralizableContractAllowanceUpdated(
                 _accountAddress,
                 _collateralizableContractAddress,
                 _tokenAddress,
-                uint256(_byAmount)
+                _byAmount,
+                newAllowance
             );
-        } else {
-            // NB: this is adding a negative, so subtracting.
-            newAmount =
-                accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContractAddress][
-                    _tokenAddress
-                ] +
-                _byAmount;
-            accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContractAddress][
-                _tokenAddress
-            ] = newAmount;
         }
-
-        emit AccountCollateralizableContractAllowanceUpdated(
-            _accountAddress,
-            _collateralizableContractAddress,
-            _tokenAddress,
-            _byAmount,
-            newAmount
-        );
     }
 
     /**
@@ -741,7 +725,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             address account = reservationStorage.account;
             address tokenAddress = reservationStorage.tokenAddress;
             // Add allowance back to collateralizable. Note: _byAmount is negative.
-            _addAccountCollateralizableTokenAllowance(account, collateralizable, tokenAddress, uint256(-_byAmount));
+            _authorizedModifyCollateralizableTokenAllowance(account, collateralizable, tokenAddress, -_byAmount, false);
 
             CollateralBalance storage balanceStorage = accountBalances[account][tokenAddress];
             balanceStorage.reserved -= byAmountUint;
@@ -796,7 +780,13 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         balanceStorage.reserved -= _totalCollateralReleased;
 
         // Add allowance back to collateralizable contract.
-        _addAccountCollateralizableTokenAllowance(account, collateralizable, tokenAddress, _totalCollateralReleased);
+        _authorizedModifyCollateralizableTokenAllowance(
+            account,
+            collateralizable,
+            tokenAddress,
+            Pricing.safeCastToInt256(_totalCollateralReleased),
+            false
+        );
 
         delete collateralReservations[_reservationId];
 
@@ -969,7 +959,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             _accountAddress,
             _collateralizableContractAddress,
             _tokenAddress,
-            _allowanceAdjustment
+            _allowanceAdjustment,
+            true
         );
     }
 
