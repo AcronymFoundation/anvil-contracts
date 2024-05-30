@@ -27,7 +27,6 @@ interface ICollateral is ICollateralDepositTarget {
     error InvalidTargetAddress(address _address);
     error InvalidUpgradeTarget(address _contract);
     error InvalidZeroAmount();
-    error MaxTokenBalanceExceeded(uint256 _wouldBeValue, uint256 _max);
     error RelatedArraysLengthMismatch(uint256 _firstLength, uint256 _secondLength);
     error TokenNotAllowed(address _address);
     error Unauthorized(address _address);
@@ -93,7 +92,7 @@ interface ICollateral is ICollateralDepositTarget {
 
     // governance events
     event CollateralizableContractApprovalUpdated(bool approved, address contractAddress, bool isCollateralPool);
-    event CollateralTokenUpdated(bool enabled, address tokenAddress, uint256 maxPerAccount);
+    event CollateralTokenUpdated(bool enabled, address tokenAddress);
     event CollateralUpgradeContractApprovalUpdated(bool approved, address upgradeContractAddress);
     event ProtocolBalanceWithdrawn(address indexed destination, address[] tokenAddresses, uint256[] amounts);
     event WithdrawalFeeUpdated(uint16 oldFeeBasisPoints, uint16 newFeeBasisPoints);
@@ -110,7 +109,6 @@ interface ICollateral is ICollateralDepositTarget {
     struct CollateralToken {
         // total deposits for all users for this token.
         uint256 cumulativeUserBalance;
-        uint256 maxPerAccount;
         bool enabled;
     }
 

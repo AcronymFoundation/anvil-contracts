@@ -81,7 +81,6 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
     struct CollateralTokenConfig {
         bool enabled;
         address tokenAddress;
-        uint256 maxPerAccount;
     }
 
     struct CollateralizableContractApprovalConfig {
@@ -630,11 +629,10 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
             // NB: we are not actually verifying that the _tokenAddress is an ERC-20.
             collateralTokens[tokenAddress] = CollateralToken(
                 collateralTokens[tokenAddress].cumulativeUserBalance,
-                _tokens[i].maxPerAccount,
                 _tokens[i].enabled
             );
 
-            emit CollateralTokenUpdated(_tokens[i].enabled, tokenAddress, _tokens[i].maxPerAccount);
+            emit CollateralTokenUpdated(_tokens[i].enabled, tokenAddress);
         }
     }
 
@@ -708,11 +706,6 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
 
         CollateralBalance storage accountBalanceStorage = accountBalances[_accountAddress][_tokenAddress];
         uint256 available = accountBalanceStorage.available;
-        {
-            uint256 newTotalBalance = available + accountBalanceStorage.reserved + _amount;
-            if (newTotalBalance > collateralTokenStorage.maxPerAccount)
-                revert MaxTokenBalanceExceeded(newTotalBalance, collateralTokenStorage.maxPerAccount);
-        }
         accountBalanceStorage.available = available + _amount;
         collateralTokenStorage.cumulativeUserBalance += _amount;
 
