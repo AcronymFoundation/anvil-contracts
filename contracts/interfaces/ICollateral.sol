@@ -39,15 +39,15 @@ interface ICollateral is ICollateralDepositTarget {
 
     // common protocol events
     event AccountCollateralizableContractAllowanceUpdated(
-        address account,
-        address contractAddress,
-        address tokenAddress,
+        address indexed account,
+        address indexed contractAddress,
+        address indexed tokenAddress,
         int256 modifiedByAmount,
         int256 newTotal
     );
     event AccountInitiatedUpgrade(
-        address account,
-        address toCollateralContract,
+        address indexed account,
+        address indexed toCollateralContract,
         address[] tokenAddresses,
         uint256[] amounts
     );
@@ -75,7 +75,12 @@ interface ICollateral is ICollateralDepositTarget {
         uint256 claimableAmount,
         uint16 claimFeeBasisPoints
     );
-    event CollateralTransferred(address fromAccount, address tokenAddress, uint256 tokenAmount, address toAccount);
+    event CollateralTransferred(
+        address indexed fromAccount,
+        address indexed tokenAddress,
+        address indexed toAccount,
+        uint256 tokenAmount
+    );
 
     event FundsDeposited(address indexed from, address indexed toAccount, address tokenAddress, uint256 amount);
     event FundsWithdrawn(
@@ -90,7 +95,7 @@ interface ICollateral is ICollateralDepositTarget {
     event CollateralizableContractApprovalUpdated(bool approved, address contractAddress, bool isCollateralPool);
     event CollateralTokenUpdated(bool enabled, address tokenAddress, uint256 maxPerAccount);
     event CollateralUpgradeContractApprovalUpdated(bool approved, address upgradeContractAddress);
-    event ProtocolBalanceWithdrawn(address destination, address[] tokenAddresses, uint256[] amounts);
+    event ProtocolBalanceWithdrawn(address indexed destination, address[] tokenAddresses, uint256[] amounts);
     event WithdrawalFeeUpdated(uint16 oldFeeBasisPoints, uint16 newFeeBasisPoints);
 
     /***********

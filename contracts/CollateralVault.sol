@@ -975,7 +975,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         accountBalances[_destinationAddress][_tokenAddress].available += _amount;
         fromStorage.available = fromAvailable - _amount;
 
-        emit CollateralTransferred(_fromAddress, _tokenAddress, _amount, _destinationAddress);
+        emit CollateralTransferred(_fromAddress, _tokenAddress, _destinationAddress, _amount);
     }
 
     /**

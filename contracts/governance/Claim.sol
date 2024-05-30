@@ -47,9 +47,9 @@ contract Claim is IClaimable, Ownable2Step {
      * EVENTS *
      **********/
 
-    event TokensClaimed(address byAccount, uint256 amount);
-    event InitialBalanceProven(address account, uint256 initialBalance);
-    event FundsRescued(address to, uint256 amount);
+    event TokensClaimed(address indexed byAccount, uint256 amount);
+    event InitialBalanceProven(address indexed account, uint256 initialBalance);
+    event FundsRescued(address indexed to, uint256 amount);
 
     /******************
      * CONTRACT STATE *
