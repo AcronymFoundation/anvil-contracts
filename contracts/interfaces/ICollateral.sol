@@ -23,7 +23,6 @@ interface ICollateral is ICollateralDepositTarget {
         int256 _have
     );
     error InsufficientCollateral(uint256 _need, uint256 _have);
-    error InvalidCollateralPool(address _contract);
     error InvalidSignature(address _accountAddress);
     error InvalidTargetAddress(address _address);
     error InvalidUpgradeTarget(address _contract);

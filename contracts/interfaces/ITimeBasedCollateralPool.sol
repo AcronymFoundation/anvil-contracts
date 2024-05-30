@@ -13,7 +13,6 @@ interface ITimeBasedCollateralPool {
     error DepositTooLarge();
     error InsufficientBalance(uint256 need, uint256 have);
     error InsufficientClaimable(uint256 need, uint256 have);
-    error InsufficientReleasable(uint256 need, uint256 have);
     error RelatedArraysLengthMismatch(uint256 firstLength, uint256 secondLength);
     error UnstakeAmountZero();
 
