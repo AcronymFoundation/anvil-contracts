@@ -21,6 +21,8 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 contract Anvil is AnvilERC20Votes {
     using Checkpoints for Checkpoints.Trace208;
 
+    error CannotDelegateToClaimContract();
+
     /// The contract that contains token allocations for various addresses that may be delegated.
     IClaimable public immutable claimContract;
 
@@ -87,10 +89,20 @@ contract Anvil is AnvilERC20Votes {
      */
     function _transferVotingUnits(address from, address to, uint256 amount) internal virtual override {
         address claimContractAddress = address(claimContract);
+
         if (from == claimContractAddress) {
-            // Claim happening
-            _moveVotingPower(to, claimContractAddress, delegates(to), amount, true, false);
+            uint256 provenUnclaimed = accountProvenUnclaimedAmount[to];
+            if (provenUnclaimed > 0) {
+                // A claim is happening -- no voting power will be updated.
+                // NB: The Claim contract ownerRescueTokens destination CANNOT have an initial claim contract balance.
+                // If it does, rescue will be treated as a claim until there is no unclaimed amount left, possibly causing this line to underflow.
+                accountProvenUnclaimedAmount[to] = provenUnclaimed - amount;
+            } else {
+                // A rescue is happening -- voting power of the `delegates[to]` account will be increased by `amount`.
+                _moveVotingPower(to, claimContractAddress, delegates(to), amount, true, false);
+            }
         } else {
+            // A regular transfer is happening.
             _moveVotingPower(from, delegates(from), delegates(to), amount, true, false);
         }
     }
@@ -111,6 +123,8 @@ contract Anvil is AnvilERC20Votes {
      * @param _hasNewProvenAmount True if _account has a new proven balance this call that it previously did not have.
      */
     function _delegateIncludingClaimBalance(address _account, address _to, bool _hasNewProvenAmount) internal {
+        if (_to == address(claimContract)) revert CannotDelegateToClaimContract();
+
         uint256 delegatorBalance = balanceOf(_account);
 
         address from = delegates(_account);
@@ -139,24 +153,16 @@ contract Anvil is AnvilERC20Votes {
         bool _isTransfer,
         bool _delegatorHasNewProvenAmount
     ) internal {
-        uint256 delegatorProvenUnclaimedUnits = accountProvenUnclaimedAmount[_delegator];
-        address claimContractAddress = address(claimContract);
-
         int256 fromVotingUnitDelta;
         uint256 toVotingUnitDelta;
         if (_isTransfer) {
-            // NB: _hasNewProvenAmount must be false since it can only be true for delegateAndProve(...) and this is a transfer.
-            if (_from == claimContractAddress && delegatorProvenUnclaimedUnits > 0) {
-                // We should only enter if this is a claim.
-                // NB: Claim contract owner should not have a claimable balance so this should never be entered for token rescue.
-                accountProvenUnclaimedAmount[_delegator] = delegatorProvenUnclaimedUnits - _tokenAmount;
-                // No delegates will be updated as a part of this operation. The claimant's delegate already has these voting units.
-            } else {
-                // This is a Claim contract rescue or regular transfer. In each case, only the tokens move.
-                toVotingUnitDelta = _tokenAmount;
-                fromVotingUnitDelta = -int256(_tokenAmount);
-            }
+            // NB: claims should not call this function, as no delegates are updated as a part of claim.
+            // We can assume this is a Claim contract rescue or regular transfer. In each case, only the tokens move.
+            toVotingUnitDelta = _tokenAmount;
+            fromVotingUnitDelta = -int256(_tokenAmount);
         } else {
+            uint256 delegatorProvenUnclaimedUnits = accountProvenUnclaimedAmount[_delegator];
+
             // This is a delegation action.
             if (_from == _to) {
                 // This is a proveAndDelegate(...) with new tokens. _to already has token voting units; just add proven.
@@ -170,6 +176,7 @@ contract Anvil is AnvilERC20Votes {
             }
         }
 
+        address claimContractAddress = address(claimContract);
         if (_from != address(0) && fromVotingUnitDelta != 0 && _from != claimContractAddress) {
             if (fromVotingUnitDelta < 0) {
                 (uint256 oldValue, uint256 newValue) = _push(
