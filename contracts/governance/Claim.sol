@@ -236,10 +236,10 @@ contract Claim is IClaimable, Ownable2Step {
     function _verifyInitialBalanceOrRevert(
         address _address,
         uint256 _initialBalance,
-        bytes32[] memory _proof
+        bytes32[] calldata _proof
     ) private view {
         if (
-            !MerkleProof.verify(
+            !MerkleProof.verifyCalldata(
                 _proof,
                 balanceRoot,
                 keccak256(abi.encodePacked(keccak256(abi.encode(_address, _initialBalance))))

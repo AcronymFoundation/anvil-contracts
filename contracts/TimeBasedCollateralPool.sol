@@ -199,7 +199,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
             uint256 vestedUnits;
             uint256 currentEpoch = getCurrentEpoch();
             uint256 epoch = accountState.firstPendingUnstakeEpoch;
-            if (epoch > 0 && epoch < currentEpoch) {
+            if (_nonZeroAndLessThan(epoch, currentEpoch)) {
                 (vestedUnits, _balance) = getAccountExitUnitsAndTokens(
                     _tokenAddress,
                     epoch,
@@ -207,7 +207,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
                     false
                 );
                 epoch = accountState.secondPendingUnstakeEpoch;
-                if (epoch > 0 && epoch < currentEpoch) {
+                if (_nonZeroAndLessThan(epoch, currentEpoch)) {
                     (uint256 units, uint256 tokens) = getAccountExitUnitsAndTokens(
                         _tokenAddress,
                         epoch,
@@ -262,7 +262,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
 
         uint256 currentEpoch = getCurrentEpoch();
         uint256 epoch = accountState.firstPendingUnstakeEpoch;
-        if (epoch > 0 && epoch < currentEpoch) {
+        if (_nonZeroAndLessThan(epoch, currentEpoch)) {
             (_accountPoolUnits.releasable, ) = getAccountExitUnitsAndTokens(
                 _tokenAddress,
                 epoch,
@@ -270,7 +270,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
                 true
             );
             epoch = accountState.secondPendingUnstakeEpoch;
-            if (epoch > 0 && epoch < currentEpoch) {
+            if (_nonZeroAndLessThan(epoch, currentEpoch)) {
                 (uint256 units, ) = getAccountExitUnitsAndTokens(
                     _tokenAddress,
                     epoch,
@@ -331,9 +331,9 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
 
             for (uint256 epochAdjustment = 0; epochAdjustment < 2; epochAdjustment++) {
                 // claimable this epoch
-                if (secondEpoch > 0 && secondEpoch < currentEpoch + epochAdjustment) {
+                if (_nonZeroAndLessThan(secondEpoch, currentEpoch + epochAdjustment)) {
                     unitsUnstaked = contractState.firstPendingUnstakeUnits + contractState.secondPendingUnstakeUnits;
-                } else if (firstEpoch > 0 && firstEpoch < currentEpoch + epochAdjustment) {
+                } else if (_nonZeroAndLessThan(firstEpoch, currentEpoch + epochAdjustment)) {
                     unitsUnstaked = contractState.firstPendingUnstakeUnits;
                 }
 
@@ -389,9 +389,9 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
 
         uint256 currentEpoch = getCurrentEpoch();
         uint256 epoch = contractState.firstPendingUnstakeEpoch;
-        if (epoch > 0 && epoch < currentEpoch) {
+        if (_nonZeroAndLessThan(epoch, currentEpoch)) {
             epoch = contractState.secondPendingUnstakeEpoch;
-            if (epoch > 0 && epoch < currentEpoch) {
+            if (_nonZeroAndLessThan(epoch, currentEpoch)) {
                 _poolUnits.releasable =
                     contractState.firstPendingUnstakeUnits +
                     contractState.secondPendingUnstakeUnits;
@@ -796,6 +796,16 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     }
 
     /**
+     * Returns true if the provided number is non-zero and less than the number to compare to.
+     * @param _numberToCheck The number being evaluated.
+     * @param _numberToCompareTo The number that _numberToCheck is evaluated against.
+     * @return True if _numberToCheck is non-zero and less than _numberToCompareTo, false otherwise.
+     */
+    function _nonZeroAndLessThan(uint256 _numberToCheck, uint256 _numberToCompareTo) private pure returns (bool) {
+        return _numberToCheck > 0 && _numberToCheck < _numberToCompareTo;
+    }
+
+    /**
      * @dev Gets the releasable units and tokens for the provided account and token by processing its pending unstakes.
      * NOTE: THIS FUNCTION UPDATES THE STATE. CALLER MUST RELEASE THE RETURNED UNITS & TOKENS OR REVERT.
      * NOTE: This function assumes that contract-level unstakes have already been processed within this transaction.
@@ -832,7 +842,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         tokenEpochExitBalances[_tokenAddress][epoch].tokensLeft -= _tokensToRelease;
 
         epoch = accountStateStorage.secondPendingUnstakeEpoch;
-        if (epoch > 0 && epoch < currentEpoch) {
+        if (_nonZeroAndLessThan(epoch, currentEpoch)) {
             // Process 2nd unstake
             (uint256 vestedUnits, uint256 vestedTokens) = getAccountExitUnitsAndTokens(
                 _tokenAddress,
@@ -951,7 +961,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
                         false
                     );
                     epoch = accountStateStorage.secondPendingUnstakeEpoch;
-                    if (epoch > 0 && epoch < currentEpoch) {
+                    if (_nonZeroAndLessThan(epoch, currentEpoch)) {
                         (uint256 units, uint256 tokens) = getAccountExitUnitsAndTokens(
                             _tokenAddress,
                             epoch,
@@ -1137,7 +1147,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         uint256 secondVestedUnits;
         uint256 secondVestedTokens;
         uint256 secondEpoch = contractStateStorage.secondPendingUnstakeEpoch;
-        if (secondEpoch > 0 && secondEpoch < currentEpoch) {
+        if (_nonZeroAndLessThan(secondEpoch, currentEpoch)) {
             secondVestedUnits = contractStateStorage.secondPendingUnstakeUnits;
             secondVestedTokens = Pricing.calculateProportionOfTotal(
                 secondVestedUnits,

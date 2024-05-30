@@ -91,6 +91,20 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         bool isApproved;
     }
 
+    /*************
+     * MODIFIERS *
+     *************/
+
+    /**
+     * Asserts that the provided collateral token address is enabled by the protocol, reverting if not.
+     * @param _collateralTokenAddress The collateral token address to check.
+     */
+    modifier onlyEnabledCollateralTokens(address _collateralTokenAddress) {
+        _verifyTokenEnabled(_collateralTokenAddress);
+
+        _;
+    }
+
     /****************
      * PUBLIC VIEWS *
      ****************/
@@ -305,9 +319,11 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
     /**
      * @inheritdoc ICollateral
      */
-    function poolCollateral(address _accountAddress, address _tokenAddress, uint256 _amount) external {
-        if (!collateralTokens[_tokenAddress].enabled) revert TokenNotAllowed(_tokenAddress);
-
+    function poolCollateral(
+        address _accountAddress,
+        address _tokenAddress,
+        uint256 _amount
+    ) external onlyEnabledCollateralTokens(_tokenAddress) {
         _requireCollateralizableAndDecreaseApprovedAmount(msg.sender, _accountAddress, _tokenAddress, _amount);
 
         _transferCollateral(_tokenAddress, _accountAddress, _amount, msg.sender);
@@ -679,9 +695,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _accountAddress,
         address _tokenAddress,
         uint256 _amount
-    ) internal {
+    ) internal onlyEnabledCollateralTokens(_tokenAddress) {
         CollateralToken storage collateralTokenStorage = collateralTokens[_tokenAddress];
-        if (!collateralTokenStorage.enabled) revert TokenNotAllowed(_tokenAddress);
 
         CollateralBalance storage accountBalanceStorage = accountBalances[_accountAddress][_tokenAddress];
         uint256 available = accountBalanceStorage.available;
@@ -733,7 +748,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         } else {
             address tokenAddress = reservationStorage.tokenAddress;
             // Cannot increase reservation if token is disabled.
-            if (!collateralTokens[tokenAddress].enabled) revert TokenNotAllowed(tokenAddress);
+            _verifyTokenEnabled(tokenAddress);
 
             uint256 byAmountUint = uint256(_byAmount);
 
@@ -762,6 +777,42 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             _reservedCollateral,
             oldClaimableAmount,
             _claimableCollateral
+        );
+    }
+
+    /// Same as the external function with a similar name, but private for easy reuse.
+    function _modifyCollateralizableTokenAllowanceWithSignature(
+        address _accountAddress,
+        address _collateralizableContractAddress,
+        address _tokenAddress,
+        int256 _allowanceAdjustment,
+        bytes calldata _signature
+    ) private {
+        {
+            bytes32 hash = _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        COLLATERALIZABLE_TOKEN_ALLOWANCE_ADJUSTMENT_TYPEHASH,
+                        block.chainid,
+                        _accountAddress,
+                        _collateralizableContractAddress,
+                        _tokenAddress,
+                        _allowanceAdjustment,
+                        _useNonce(_accountAddress)
+                    )
+                )
+            );
+            if (!SignatureChecker.isValidSignatureNow(_accountAddress, hash, _signature)) {
+                revert InvalidSignature(_accountAddress);
+            }
+        }
+
+        _authorizedModifyCollateralizableTokenAllowance(
+            _accountAddress,
+            _collateralizableContractAddress,
+            _tokenAddress,
+            _allowanceAdjustment,
+            true
         );
     }
 
@@ -850,9 +901,8 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _tokenAddress,
         uint256 _reservedCollateral,
         uint256 _claimableCollateral
-    ) private returns (uint96 _reservationId) {
+    ) private onlyEnabledCollateralTokens(_tokenAddress) returns (uint96 _reservationId) {
         if (_claimableCollateral == 0) revert ClaimableAmountZero();
-        if (!collateralTokens[_tokenAddress].enabled) revert TokenNotAllowed(_tokenAddress);
 
         _requireCollateralizableAndDecreaseApprovedAmount(
             _reservingContract,
@@ -928,40 +978,12 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         emit CollateralTransferred(_fromAddress, _tokenAddress, _amount, _destinationAddress);
     }
 
-    /// Same as the external function with a similar name, but private for easy reuse.
-    function _modifyCollateralizableTokenAllowanceWithSignature(
-        address _accountAddress,
-        address _collateralizableContractAddress,
-        address _tokenAddress,
-        int256 _allowanceAdjustment,
-        bytes calldata _signature
-    ) private {
-        {
-            bytes32 hash = _hashTypedDataV4(
-                keccak256(
-                    abi.encode(
-                        COLLATERALIZABLE_TOKEN_ALLOWANCE_ADJUSTMENT_TYPEHASH,
-                        block.chainid,
-                        _accountAddress,
-                        _collateralizableContractAddress,
-                        _tokenAddress,
-                        _allowanceAdjustment,
-                        _useNonce(_accountAddress)
-                    )
-                )
-            );
-            if (!SignatureChecker.isValidSignatureNow(_accountAddress, hash, _signature)) {
-                revert InvalidSignature(_accountAddress);
-            }
-        }
-
-        _authorizedModifyCollateralizableTokenAllowance(
-            _accountAddress,
-            _collateralizableContractAddress,
-            _tokenAddress,
-            _allowanceAdjustment,
-            true
-        );
+    /**
+     * @notice Verifies that the provided collateral token is enabled by the protocol (owner), reverting if it is not.
+     * @param _collateralTokenAddress The address of the collateral token being verified.
+     */
+    function _verifyTokenEnabled(address _collateralTokenAddress) private view {
+        if (!collateralTokens[_collateralTokenAddress].enabled) revert TokenNotAllowed(_collateralTokenAddress);
     }
 
     /**
