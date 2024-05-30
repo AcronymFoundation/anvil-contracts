@@ -917,6 +917,12 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         uint256 _amount,
         address _destinationAddress
     ) private {
+        if (_amount == 0 || _fromAddress == _destinationAddress) {
+            // NB: 0 amounts should not revert, as transferCollateral may be used by pool contracts to do the reverse of
+            // poolCollateral(...). If those contracts do not check for 0, reverting here may cause them to deadlock.
+            return;
+        }
+
         CollateralBalance storage fromStorage = accountBalances[_fromAddress][_tokenAddress];
         uint256 fromAvailable = fromStorage.available;
         if (_amount > fromAvailable) {
