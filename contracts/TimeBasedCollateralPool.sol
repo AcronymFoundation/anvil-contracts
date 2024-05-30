@@ -298,9 +298,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     }
 
     /**
-     * @notice Gets the amounts of the provided tokens that are guaranteed to be claimable this epoch and next epoch.
-     * @param _tokens The ERC-20 tokens for which claimable collateral are being requested.
-     * @return _claimableCollateral The array of claimable collateral corresponding to the _tokens array in the same order.
+     * @inheritdoc ITimeBasedCollateralPool
      */
     function getClaimableCollateral(
         IERC20[] calldata _tokens
@@ -1109,9 +1107,9 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     }
 
     /**
-     * @dev Iterates through the `tokenContractPoolBalances` array for the provided token to release all eligible
-     * pending unstake state.
-     * This may end up resetting the pool for the token in question if processing pending unstakes leaves our
+     * @dev Removes applicable units and tokens from contract-level unstake state for the provided token address
+     * creating entries in the tokenEpochExitBalances mapping as applicable.
+     * This may end up resetting the pool for the token in question if processing pending unstakes leaves the associated
      * CollateralReservation in a state in which it has collateral but none is claimable. See try/catch below.
      * @param _tokenAddress The address of the ERC-20 token to be released.
      * @return Whether or not the pool was reset as a result of this call.

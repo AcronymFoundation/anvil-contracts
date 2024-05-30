@@ -577,7 +577,7 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
                 newAllowance = type(int256).max;
             }
         } else {
-            // NB: this is adding a negative, so subtracting.
+            // NB: this is adding a negative (or zero), so subtracting.
             newAllowance = currentAllowance + _byAmount;
         }
 

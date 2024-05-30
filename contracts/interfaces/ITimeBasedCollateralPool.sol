@@ -99,7 +99,6 @@ interface ITimeBasedCollateralPool {
 
     /**
      * @notice Gets the amounts of the provided tokens that are guaranteed to be claimable this epoch and next epoch.
-     * @dev This is not a `view`, so it must be static-called to use as a getter (so a transaction is not submitted).
      * @param _tokens The ERC-20 tokens for which claimable tokens are being requested.
      * @return _claimableCollateral The array of claimable tokens corresponding to the _tokens array in the same order.
      */
