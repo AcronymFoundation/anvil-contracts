@@ -12,8 +12,6 @@ import "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorStorag
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title This is the initial Governor contract that is delegated to by `AnvilGovernorDelegate` for the Anvil protocol
  * to implement governance logic.
