@@ -200,21 +200,26 @@ interface ICollateral is ICollateralDepositTarget {
 
     /**
      * @notice Deposits the provided amount of the specified token into the specified account. Assets are sourced from
-     * the specified account's ERC-20 token balance. This may only be called by actors the account has approved to act
-     * on their collateral (i.e. approved collateralizable contracts).
+     * the specified account's ERC-20 token balance.
+     *
+     * Note: Even if an account has previously approved a collateralizable to use its collateral, it must provide a
+     * deposit signature allowing it to deposit on its behalf. If the account-collateralizable allowance is less than
+     * the amount being deposited, the result of this call will be that the account-collateraliazble allowance is equal
+     * to the amount being deposited. If the allowance was already sufficient to use this newly deposited amount, the
+     * allowance will remain the same.
+     *
      * @param _accountAddress The account address from which assets will be deposited and with which deposited assets will
      * be associated in this contract.
      * @param _tokenAddress The address of the token to be deposited.
      * @param _amount The amount of the token to be deposited.
-     * @param _collateralizableAllowanceSignature [Optional] allowance signature permitting the calling collateralizable
-     * to act on the account's collateral. This enables deposit-and-approve functionality.
-     * Note: the approval signature must be for the amount that is specified in this call.
+     * @param _collateralizableDepositApprovalSignature Deposit approval signature permitting the calling collateralizable
+     * to deposit the account's collateral. This enables deposit-approve-and-use functionality in a single transaction.
      */
     function depositFromAccount(
         address _accountAddress,
         address _tokenAddress,
         uint256 _amount,
-        bytes calldata _collateralizableAllowanceSignature
+        bytes calldata _collateralizableDepositApprovalSignature
     ) external;
 
     /**

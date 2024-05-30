@@ -138,14 +138,14 @@ interface ITimeBasedCollateralPool {
      * @dev This requires that the caller has called IERC20.approve(...), permitting the CollateralVault to transfer its tokens.
      * @param _token The ERC-20 token to deposit and stake.
      * @param _amount The amount of the ERC-20 token to deposit and stake.
-     * @param _collateralizableApprovalSignature [Optional] The signature to approve the use of this collateralizable
-     * within the `ICollateral` contract.
+     * @param _collateralizableDepositApprovalSignature The signature to allow this collateralizable to deposit on
+     * behalf of the calling account within the `ICollateral` contract.
      * @return _poolUnitsIssued The number of pool units issued to the sender as a result of this call.
      */
     function depositAndStake(
         IERC20 _token,
         uint256 _amount,
-        bytes calldata _collateralizableApprovalSignature
+        bytes calldata _collateralizableDepositApprovalSignature
     ) external returns (uint256 _poolUnitsIssued);
 
     /**

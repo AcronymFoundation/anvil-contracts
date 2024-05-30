@@ -603,9 +603,9 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     function depositAndStake(
         IERC20 _token,
         uint256 _amount,
-        bytes calldata _collateralizableApprovalSignature
+        bytes calldata _collateralizableDepositApprovalSignature
     ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256 _poolUnitsIssued) {
-        collateral.depositFromAccount(msg.sender, address(_token), _amount, _collateralizableApprovalSignature);
+        collateral.depositFromAccount(msg.sender, address(_token), _amount, _collateralizableDepositApprovalSignature);
 
         return _stake(_token, _amount);
     }

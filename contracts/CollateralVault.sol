@@ -43,6 +43,11 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             "CollateralizableTokenAllowanceAdjustment(uint256 chainId,address approver,address collateralizableAddress,address tokenAddress,int256 allowanceAdjustment,uint256 approverNonce)"
         );
 
+    bytes32 public constant COLLATERALIZABLE_DEPOSIT_APPROVAL_TYPEHASH =
+        keccak256(
+            "CollateralizableDepositApproval(uint256 chainId,address approver,address collateralizableAddress,address tokenAddress,uint256 depositAmount,uint256 approverNonce)"
+        );
+
     /// can be modified via governance through setWithdrawalFeeBasisPoints(...).
     uint16 public withdrawalFeeBasisPoints = 50;
 
@@ -217,27 +222,25 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _accountAddress,
         address _tokenAddress,
         uint256 _amount,
-        bytes calldata _collateralizableAllowanceSignature
+        bytes calldata _collateralizableDepositApprovalSignature
     ) external {
         if (!collateralizableContracts[msg.sender]) revert Unauthorized(msg.sender);
 
-        // NB: Some indication of account collateralizable approval must exist, but the allowance is of use, not deposit.
-        // ERC-20 allowance will dictate the allowed deposit amount.
-        if (_collateralizableAllowanceSignature.length > 0) {
-            // Note: If the allowance was negative, the result of this action may still be an allowance <= 0, but the
-            // signature itself is an indication that the account has increased the allowance, so still let the deposit occur.
-            // The signer can prevent this by not signing the increase.
-            _modifyCollateralizableTokenAllowanceWithSignature(
+        _verifyDepositApprovalSignature(
+            _accountAddress,
+            _tokenAddress,
+            _amount,
+            _collateralizableDepositApprovalSignature
+        );
+
+        int256 allowance = accountCollateralizableTokenAllowances[_accountAddress][msg.sender][_tokenAddress];
+        if (allowance < int256(_amount)) {
+            _addAccountCollateralizableTokenAllowance(
                 _accountAddress,
                 msg.sender,
                 _tokenAddress,
-                Pricing.safeCastToInt256(_amount),
-                _collateralizableAllowanceSignature
+                uint256(int256(_amount) - allowance)
             );
-        } else {
-            if (accountCollateralizableTokenAllowances[_accountAddress][msg.sender][_tokenAddress] <= 0) {
-                revert Unauthorized(msg.sender);
-            }
         }
 
         _deposit(_accountAddress, _accountAddress, _tokenAddress, _amount);
@@ -968,5 +971,38 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
             _tokenAddress,
             _allowanceAdjustment
         );
+    }
+
+    /**
+     * @dev verifies the provided collateralizable deposit approval signature, reverting with InvalidSignature if not valid.
+     * Note: this function exists and is virtual so it can be overridden in tests that care to test the deposit
+     * functionality but mock or otherwise ignore signature checking.
+     * @param _accountAddress The address of the account that should have signed the deposit approval.
+     * @param _tokenAddress The address of the token of the deposit approval.
+     * @param _amount The amount of the deposit approval.
+     * @param _signature The signature being verified.
+     */
+    function _verifyDepositApprovalSignature(
+        address _accountAddress,
+        address _tokenAddress,
+        uint256 _amount,
+        bytes memory _signature
+    ) internal virtual {
+        bytes32 hash = _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    COLLATERALIZABLE_DEPOSIT_APPROVAL_TYPEHASH,
+                    block.chainid,
+                    _accountAddress,
+                    msg.sender,
+                    _tokenAddress,
+                    _amount,
+                    _useNonce(_accountAddress)
+                )
+            )
+        );
+        if (!SignatureChecker.isValidSignatureNow(_accountAddress, hash, _signature)) {
+            revert InvalidSignature(_accountAddress);
+        }
     }
 }
