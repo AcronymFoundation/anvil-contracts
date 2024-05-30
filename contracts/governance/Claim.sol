@@ -210,6 +210,16 @@ contract Claim is IClaimable, Ownable2Step {
         return _initialBalance;
     }
 
+    /**
+     * Note: this is overridden to disable it.
+     *
+     * @inheritdoc Ownable
+     */
+    function renounceOwnership() public override onlyOwner {
+        // Disallow accidental and intentional ownership renunciation.
+        revert();
+    }
+
     /********************************
      * PRIVATE / INTERNAL FUNCTIONS *
      ********************************/
