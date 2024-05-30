@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: ISC
-pragma solidity ^0.8.20;
+pragma solidity 0.8.25;
 
 /**
  * @title An interface allowing the deposit of assets into a new ICollateral contract for benefit of a specified account.

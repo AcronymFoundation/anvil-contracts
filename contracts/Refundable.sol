@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: ISC
-pragma solidity ^0.8.20;
+pragma solidity 0.8.25;
 
 /**
  * Base contract that can be extended to pull in `refundExcess` modifier, which ensures that the ETH balance of a

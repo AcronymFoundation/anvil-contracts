@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: ISC
-pragma solidity ^0.8.20;
+pragma solidity 0.8.25;
 
 /**
  * @title The interface that should be implemented by all collateral pools using ICollateral's pooling functions.
