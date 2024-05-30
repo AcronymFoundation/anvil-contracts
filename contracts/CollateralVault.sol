@@ -168,6 +168,9 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         uint256[] calldata _amounts,
         address _collateralizableContractAddressToApprove
     ) external {
+        if (!collateralizableContracts[_collateralizableContractAddressToApprove])
+            revert ContractNotApprovedByProtocol(_collateralizableContractAddressToApprove);
+
         depositToAccount(msg.sender, _tokenAddresses, _amounts);
         for (uint256 i = 0; i < _amounts.length; i++) {
             _authorizedModifyCollateralizableTokenAllowance(
@@ -253,6 +256,9 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _tokenAddress,
         int256 _byAmount
     ) external {
+        if (_byAmount > 0 && !collateralizableContracts[_collateralizableContractAddress])
+            revert ContractNotApprovedByProtocol(_collateralizableContractAddress);
+
         _authorizedModifyCollateralizableTokenAllowance(
             msg.sender,
             _collateralizableContractAddress,
@@ -271,6 +277,9 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         int256 _allowanceAdjustment,
         bytes calldata _signature
     ) external {
+        if (_allowanceAdjustment > 0 && !collateralizableContracts[_collateralizableContractAddress])
+            revert ContractNotApprovedByProtocol(_collateralizableContractAddress);
+
         _modifyCollateralizableTokenAllowanceWithSignature(
             _accountAddress,
             _collateralizableContractAddress,
@@ -570,9 +579,6 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Nonces {
         address _tokenAddress,
         int256 _byAmount
     ) private {
-        if (_collateralizableContractAddress == address(0))
-            revert InvalidTargetAddress(_collateralizableContractAddress);
-
         int256 newAmount;
         if (_byAmount > 0) {
             newAmount = _addAccountCollateralizableTokenAllowance(
