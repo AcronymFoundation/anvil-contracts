@@ -153,13 +153,13 @@ contract Anvil is AnvilERC20Votes {
         bool _isTransfer,
         bool _delegatorHasNewProvenAmount
     ) internal {
-        int256 fromVotingUnitDelta;
+        uint256 fromVotingUnitDelta;
         uint256 toVotingUnitDelta;
         if (_isTransfer) {
             // NB: claims should not call this function, as no delegates are updated as a part of claim.
             // We can assume this is a Claim contract rescue or regular transfer. In each case, only the tokens move.
             toVotingUnitDelta = _tokenAmount;
-            fromVotingUnitDelta = -int256(_tokenAmount);
+            fromVotingUnitDelta = _tokenAmount;
         } else {
             uint256 delegatorProvenUnclaimedUnits = accountProvenUnclaimedAmount[_delegator];
 
@@ -171,28 +171,19 @@ contract Anvil is AnvilERC20Votes {
                 toVotingUnitDelta = _tokenAmount + delegatorProvenUnclaimedUnits;
                 // If _hasNewProvenAmount, _from doesn't have those voting units, so do not subtract.
                 fromVotingUnitDelta = _delegatorHasNewProvenAmount
-                    ? -int256(_tokenAmount)
-                    : -int256(delegatorProvenUnclaimedUnits) - int256(_tokenAmount);
+                    ? _tokenAmount
+                    : delegatorProvenUnclaimedUnits + _tokenAmount;
             }
         }
 
         address claimContractAddress = address(claimContract);
         if (_from != address(0) && fromVotingUnitDelta != 0 && _from != claimContractAddress) {
-            if (fromVotingUnitDelta < 0) {
-                (uint256 oldValue, uint256 newValue) = _push(
-                    _delegateCheckpoints[_from],
-                    _subtract,
-                    SafeCast.toUint208(uint256(-fromVotingUnitDelta))
-                );
-                emit DelegateVotesChanged(_from, oldValue, newValue);
-            } else {
-                (uint256 oldValue, uint256 newValue) = _push(
-                    _delegateCheckpoints[_from],
-                    _add,
-                    SafeCast.toUint208(uint256(fromVotingUnitDelta))
-                );
-                emit DelegateVotesChanged(_from, oldValue, newValue);
-            }
+            (uint256 oldValue, uint256 newValue) = _push(
+                _delegateCheckpoints[_from],
+                _subtract,
+                SafeCast.toUint208(fromVotingUnitDelta)
+            );
+            emit DelegateVotesChanged(_from, oldValue, newValue);
         }
 
         if (_to != address(0) && toVotingUnitDelta != 0 && _to != claimContractAddress) {
