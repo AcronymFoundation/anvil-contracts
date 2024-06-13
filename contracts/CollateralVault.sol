@@ -147,6 +147,13 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
     }
 
     /**
+     * @inheritdoc ICollateral
+     */
+    function getWithdrawalFeeBasisPoints() external view returns (uint16) {
+        return withdrawalFeeBasisPoints;
+    }
+
+    /**
      * Indicates support for IERC165, ICollateral, and ICollateralUpgradeTarget.
      * @inheritdoc IERC165
      */
@@ -606,17 +613,20 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
             }
         }
 
-        accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContractAddress][
-            _tokenAddress
-        ] = newAllowance;
+        // Only update storage and emit an event if the allowance was actually updated.
+        if (newAllowance != currentAllowance) {
+            accountCollateralizableTokenAllowances[_accountAddress][_collateralizableContractAddress][
+                _tokenAddress
+            ] = newAllowance;
 
-        emit AccountCollateralizableContractAllowanceUpdated(
-            _accountAddress,
-            _collateralizableContractAddress,
-            _tokenAddress,
-            _byAmount,
-            newAllowance
-        );
+            emit AccountCollateralizableContractAllowanceUpdated(
+                _accountAddress,
+                _collateralizableContractAddress,
+                _tokenAddress,
+                _byAmount,
+                newAllowance
+            );
+        }
     }
 
     /**

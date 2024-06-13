@@ -2,29 +2,43 @@
 pragma solidity 0.8.25;
 
 import "./interfaces/ICollateral.sol";
+import "./interfaces/ILetterOfCredit.sol";
 import "./interfaces/ILiquidator.sol";
 import "./interfaces/ILiquidatable.sol";
+import "./Refundable.sol";
+import "./SignatureNonces.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import "./Refundable.sol";
-import "./interfaces/ILetterOfCredit.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /**
  * @title Contract for the creation, management, and redemption of collateralized Letters of Credit (LOCs) between parties.
- *
- * @custom:security-contact security@af.xyz
  */
-contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, ReentrancyGuard, Refundable {
+contract LetterOfCredit is
+    ILetterOfCredit,
+    ILiquidatable,
+    Ownable2Step,
+    ReentrancyGuard,
+    Refundable,
+    EIP712,
+    SignatureNonces
+{
     using SafeERC20 for IERC20;
 
     /******************
      * CONTRACT STATE *
      ******************/
+
+    bytes32 public constant CANCEL_TYPEHASH = keccak256("CancelAuthorization(uint96 locId,uint256 approverNonce)");
+    bytes32 public constant CONVERT_TYPEHASH = keccak256("ConvertAuthorization(uint96 locId,uint256 approverNonce)");
+    bytes32 public constant REDEEM_TYPEHASH =
+        keccak256(
+            "RedeemAuthorization(uint96 locId,uint256 creditedAmountToRedeem,uint256 creditedTokenAmount,address destinationAddress,uint256 approverNonce)"
+        );
 
     /// NB: uint96 stores up to 7.9 x 10^28 and packs tightly with addresses (12 + 20 = 32 bytes).
     uint96 public locNonce;
@@ -46,20 +60,6 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
     ICollateral public collateralContract;
     // The IPriceOracle to use for all price interactions (NB: for both new and existing LOCs).
     IPriceOracle public priceOracle;
-    /// If not zero, the price oracle address that is pending and is valid for governance to upgrade to after pendingPriceOracleValidTime.
-    IPriceOracle public pendingPriceOracle;
-    /// The time at which governance may upgrade to pendingPriceOracle.
-    uint256 public pendingPriceOracleValidTime;
-
-    /// This is to enforce a time delay for very impactful governance updates like PriceOracle updates.
-    /// The owner may reasonably be changed to a 3rd party contract that handles this, at which point this might be
-    /// updated to 0s, so this, itself, must be governable.
-    uint256 public oracleTimeDelaySeconds = 60 * 60 * 24 * 14; // 14 days
-
-    /// If not zero, the time delay that is pending and is valid for governance to upgrade to after pendingTimeDelaySecondsValidTime.
-    uint256 public pendingOracleTimeDelaySeconds;
-    /// The time at which governance may upgrade to pendingTimeDelaySeconds.
-    uint256 public pendingOracleTimeDelaySecondsValidTime;
 
     /// Credited Token Address => token available for use as LOC credited tokens and its limits for use.
     mapping(address => CreditedToken) public creditedTokens;
@@ -162,7 +162,7 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
         IPriceOracle _priceOracle,
         CreditedTokenConfig[] memory _creditedTokens,
         AssetPairCollateralFactor[] memory _assetPairCollateralFactors
-    ) Ownable(msg.sender) {
+    ) Ownable(msg.sender) EIP712("LetterOfCredit", "1") {
         _upsertCreditedTokensAsOwner(_creditedTokens);
         _upsertCollateralFactorsAsOwner(_assetPairCollateralFactors);
 
@@ -180,6 +180,8 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
      * @param _expirationTimestamp The expiration time of the LOC.
      * @param _oraclePriceUpdate (optional) The opaque bytes of the oracle price update to be processed. If not
      * provided, the existing oracle price must not be stale, or the transaction will revert.
+     * @param _collateralizableAllowanceSignature (optional) The signature to allow this collateralizable to reserve the
+     * specified amount of the calling account's collateral within the `ICollateral` contract.
      */
     function createLOC(
         address _beneficiary,
@@ -188,10 +190,25 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
         address _creditedTokenAddress,
         uint256 _creditedTokenAmount,
         uint32 _expirationTimestamp,
-        bytes calldata _oraclePriceUpdate
+        bytes calldata _oraclePriceUpdate,
+        bytes calldata _collateralizableAllowanceSignature
     ) external payable refundExcess nonReentrant {
         if (_collateralTokenAddress == _creditedTokenAddress) {
             if (_collateralTokenAmount != _creditedTokenAmount) revert InvalidConvertedLOCParameters();
+
+            if (_collateralizableAllowanceSignature.length > 0) {
+                collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
+                    msg.sender,
+                    address(this),
+                    _collateralTokenAddress,
+                    Pricing.safeCastToInt256(
+                        // NB: amount with fee is what is reserved.
+                        Pricing.amountWithFee(_collateralTokenAmount, collateralContract.getWithdrawalFeeBasisPoints())
+                    ),
+                    _collateralizableAllowanceSignature
+                );
+            }
+
             _createConvertedLOC(
                 msg.sender,
                 _beneficiary,
@@ -200,6 +217,16 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
                 _expirationTimestamp
             );
             return;
+        }
+
+        if (_collateralizableAllowanceSignature.length > 0) {
+            collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
+                msg.sender,
+                address(this),
+                _collateralTokenAddress,
+                Pricing.safeCastToInt256(_collateralTokenAmount),
+                _collateralizableAllowanceSignature
+            );
         }
 
         Pricing.OraclePrice memory price;
@@ -319,23 +346,14 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
         LOC memory loc = locs[_locId];
 
         if (msg.sender != loc.beneficiary) {
-            if (_beneficiaryAuthorization.length > 0) {
-                // NB: amount remaining to prevent signature replay.
-                bytes memory args = abi.encodePacked(
-                    _creditedAmountToRedeem,
-                    loc.creditedTokenAmount,
-                    _destinationAddress
-                );
-                _validateAuthorizationOrRevert(
-                    _locId,
-                    loc.beneficiary,
-                    Operation.RedeemLOC,
-                    args,
-                    _beneficiaryAuthorization
-                );
-            } else {
-                revert AddressUnauthorizedForLOC(msg.sender, _locId);
-            }
+            _validateRedeemAuth(
+                _locId,
+                _creditedAmountToRedeem,
+                loc.creditedTokenAmount,
+                _destinationAddress,
+                loc.beneficiary,
+                _beneficiaryAuthorization
+            );
         }
 
         _redeemLOC(_locId, loc, _creditedAmountToRedeem, _destinationAddress, _iLiquidatorToUse, _oraclePriceUpdate);
@@ -352,17 +370,7 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
     function cancelLOC(uint96 _locId, bytes memory _beneficiaryAuthorization) external nonReentrant {
         LOC memory loc = locs[_locId];
         if (msg.sender != loc.beneficiary && loc.expirationTimestamp > block.timestamp) {
-            if (_beneficiaryAuthorization.length > 0) {
-                _validateAuthorizationOrRevert(
-                    _locId,
-                    loc.beneficiary,
-                    Operation.CancelLOC,
-                    bytes(""),
-                    _beneficiaryAuthorization
-                );
-            } else {
-                revert AddressUnauthorizedForLOC(msg.sender, _locId);
-            }
+            _validateCancelAuth(_locId, loc.beneficiary, _beneficiaryAuthorization);
         }
 
         _cancelLOC(_locId, loc);
@@ -407,11 +415,14 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
      * @param _byAmount The signed amount by which the collateral should be modified (add if positive, remove if negative).
      * @param _oraclePriceUpdate (optional) The oracle price update to use if removing collateral to make sure the
      * resulting amount of collateral is sufficient.
+     * @param _collateralizableAllowanceSignature (optional) The signature to allow this collateralizable to reserve the
+     * specified additional amount of the calling account's collateral within the `ICollateral` contract.
      */
     function modifyLOCCollateral(
         uint96 _locId,
         int256 _byAmount,
-        bytes calldata _oraclePriceUpdate
+        bytes calldata _oraclePriceUpdate,
+        bytes calldata _collateralizableAllowanceSignature
     ) external payable refundExcess nonReentrant {
         LOC memory loc = locs[_locId];
 
@@ -419,6 +430,17 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
         if (loc.creditedTokenAmount == 0) revert LOCNotFound(_locId);
         if (msg.sender != loc.creator) revert AddressUnauthorizedForLOC(msg.sender, _locId);
         if (loc.collateralTokenAddress == loc.creditedTokenAddress) revert LOCAlreadyConverted(_locId);
+
+        if (_collateralizableAllowanceSignature.length > 0) {
+            // NB: this does not forbid decreasing the allowance if releasing collateral. That shouldn't happen often but is a legitimate use case.
+            collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
+                msg.sender,
+                address(this),
+                loc.collateralTokenAddress,
+                _byAmount,
+                _collateralizableAllowanceSignature
+            );
+        }
 
         // Update underlying collateral.
         (uint256 newCollateralAmount, uint256 newClaimableAmount) = loc.collateralContract.modifyCollateralReservation(
@@ -484,27 +506,17 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
         bytes calldata _oraclePriceUpdate,
         bytes calldata _creatorAuthorization
     ) external payable refundExcess nonReentrant {
-        LOC memory loc = locs[_locId];
+        address creator = locs[_locId].creator;
 
         address senderOrAuthorizer = msg.sender;
-        if (msg.sender != loc.creator) {
-            // NB: If not creator and there is an authorization provided, it MUST be valid, even if the LOC is unhealthy.
-            if (_creatorAuthorization.length > 0) {
-                _validateAuthorizationOrRevert(
-                    _locId,
-                    loc.creator,
-                    Operation.ConvertLOC,
-                    bytes(""),
-                    _creatorAuthorization
-                );
-
-                senderOrAuthorizer = loc.creator;
-            }
+        if (msg.sender != creator && _creatorAuthorization.length > 0) {
+            _validateConvertAuth(_locId, creator, _creatorAuthorization);
+            senderOrAuthorizer = creator;
         }
 
         _liquidateLOCCollateral(
             _locId,
-            loc.creditedTokenAmount,
+            locs[_locId].creditedTokenAmount,
             _liquidatorToUse,
             senderOrAuthorizer,
             _oraclePriceUpdate,
@@ -577,54 +589,12 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
     }
 
     /**
-     * @notice Upgrades the `priceOracle` if the provided `_newPriceOracle` has been pending long enough. If no price
-     * oracle upgrade is pending or the provided `_newPriceOracle` does not match the pending one, it updates the
-     * `pendingPriceOracle` and the `pendingPriceOracleValidTime` so that an upgrade is permitted after a time delay.
-     * Notes:
-     *  * If `timeDelaySeconds` is set to 0, none of the pending state variables are taken into account.
-     *  * Calling this with a `_newPriceOracle` of `0x0` revokes an existing pending upgrade (if `timeDelaySeconds` is not 0).
+     * @notice Upgrades the `priceOracle` to the provided price oracle.
      * @param _newPriceOracle The new IPriceOracle contract to upgrade.
      */
     function upgradePriceOracle(IPriceOracle _newPriceOracle) public onlyOwner {
-        if (oracleTimeDelaySeconds == 0) {
-            // If there's no time delay, update immediately, ignoring pending state.
-            if (_newPriceOracle == priceOracle) revert NoOp();
-            if (_newPriceOracle == IPriceOracle(address(0))) revert InvalidZeroAddress();
-
-            emit PriceOracleUpgraded(priceOracle, _newPriceOracle);
-
-            priceOracle = _newPriceOracle;
-            pendingPriceOracleValidTime = 0;
-            pendingPriceOracle = IPriceOracle(address(0));
-        } else if (_newPriceOracle == IPriceOracle(address(0))) {
-            // Revoke pending if new address is zero and there is a pending upgrade.
-            if (pendingPriceOracle == IPriceOracle(address(0))) revert InvalidZeroAddress();
-
-            pendingPriceOracleValidTime = 0;
-            pendingPriceOracle = IPriceOracle(address(0));
-
-            emit PriceOracleUpgradeRevoked();
-            // Return so we don't revert on the supportsInterface check below.
-            return;
-        } else if (pendingPriceOracle != _newPriceOracle) {
-            // Add pending upgrade if new oracle address is not already pending.
-            if (_newPriceOracle == priceOracle) revert NoOp();
-
-            uint256 validTime = block.timestamp + oracleTimeDelaySeconds;
-            pendingPriceOracleValidTime = validTime;
-            pendingPriceOracle = _newPriceOracle;
-
-            emit PriceOracleUpgradePending(_newPriceOracle, validTime);
-        } else if (block.timestamp >= pendingPriceOracleValidTime) {
-            // Execute pending upgrade if time delay is satisfied.
-            emit PriceOracleUpgraded(priceOracle, _newPriceOracle);
-
-            priceOracle = _newPriceOracle;
-            pendingPriceOracle = IPriceOracle(address(0));
-            pendingPriceOracleValidTime = 0;
-        } else {
-            revert UpdateNotValidYet(pendingPriceOracleValidTime);
-        }
+        if (_newPriceOracle == priceOracle) revert NoOp();
+        if (_newPriceOracle == IPriceOracle(address(0))) revert InvalidZeroAddress();
 
         // NB: if the _newPriceOracle is an EOA, the transaction will revert without a reason.
         try IERC165(address(_newPriceOracle)).supportsInterface(type(IPriceOracle).interfaceId) returns (
@@ -634,44 +604,10 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
         } catch (bytes memory /*lowLevelData*/) {
             revert InvalidUpgradeContract();
         }
-    }
 
-    /**
-     * @notice Updates the `timeDelaySeconds` if the provided `_newValue` has been pending long enough. If no time delay
-     * is pending or the provided `_newValue` does not match the pending one, it updates the `pendingTimeDelaySeconds`
-     * and the `pendingTimeDelaySecondsValidTime` so that an update is permitted after a time delay.
-     * Notes:
-     *  * If timeDelaySeconds is set to 0, none of the pending state variables are taken into account.
-     *  * Executing this function with a `_newValue` of `0` revokes an existing pending upgrade unless.
-     * @param _newValue The new time delay to mark as pending or update to.
-     */
-    function updateOracleTimeDelay(uint256 _newValue) public onlyOwner {
-        if (oracleTimeDelaySeconds == 0) {
-            // If there's no time delay, update immediately, ignoring pending state.
-            if (oracleTimeDelaySeconds == _newValue) revert NoOp();
+        emit PriceOracleUpgraded(priceOracle, _newPriceOracle);
 
-            emit OracleTimeDelayUpdated(oracleTimeDelaySeconds, _newValue);
-
-            oracleTimeDelaySeconds = _newValue;
-        } else if (pendingOracleTimeDelaySeconds != _newValue || pendingOracleTimeDelaySecondsValidTime == 0) {
-            // Add pending upgrade if new time is not already pending.
-            if (oracleTimeDelaySeconds == _newValue) revert NoOp();
-
-            uint256 validTime = block.timestamp + oracleTimeDelaySeconds;
-            pendingOracleTimeDelaySecondsValidTime = validTime;
-            pendingOracleTimeDelaySeconds = _newValue;
-
-            emit OracleTimeDelayUpdatePending(_newValue, validTime);
-        } else if (block.timestamp >= pendingOracleTimeDelaySecondsValidTime) {
-            // Execute pending upgrade if time delay is satisfied.
-            emit OracleTimeDelayUpdated(oracleTimeDelaySeconds, _newValue);
-
-            oracleTimeDelaySeconds = _newValue;
-            pendingOracleTimeDelaySeconds = 0;
-            pendingOracleTimeDelaySecondsValidTime = 0;
-        } else {
-            revert UpdateNotValidYet(pendingOracleTimeDelaySecondsValidTime);
-        }
+        priceOracle = _newPriceOracle;
     }
 
     /*********************
@@ -1215,30 +1151,70 @@ contract LetterOfCredit is ILetterOfCredit, ILiquidatable, Ownable2Step, Reentra
     }
 
     /**
-     * @dev Validates the provided Beneficiary Authorization for the LOC and operation in question.
-     * @param _locId The ID of the LOC for which the authorization should be valid.
-     * @param _authorizer The address of the party that is expected to have signed the authorization.
-     * @param _operation The SignatureOperation value indicating the operation for which the signature should be valid.
-     * @param _operationArgs The relevant operation arguments that must be included in the signature, if there are any.
-     * @param _authorization The signed authorization being validated.
-     * @notice This will revert if the authorization is not valid.
+     * @dev Helper function to validate the provided cancel authorization.
+     * Note: this reverts if the auth is invalid.
+     * @param _locId The ID of the LOC of the cancel authorization.
+     * @param _beneficiary The beneficiary of the LOC. The signature must match this address.
+     * @param _signature The signature that is being validated.
      */
-    function _validateAuthorizationOrRevert(
-        uint96 _locId,
-        address _authorizer,
-        Operation _operation,
-        bytes memory _operationArgs,
-        bytes memory _authorization
-    ) private view {
-        bytes memory encoded;
-        if (_operationArgs.length > 0) {
-            encoded = abi.encodePacked(_operation, _locId, block.chainid, address(this), _operationArgs);
-        } else {
-            encoded = abi.encodePacked(_operation, _locId, block.chainid, address(this));
+    function _validateCancelAuth(uint96 _locId, address _beneficiary, bytes memory _signature) private {
+        bytes32 hash = _hashTypedDataV4(
+            keccak256(abi.encode(CANCEL_TYPEHASH, _locId, _useNonce(_beneficiary, CANCEL_TYPEHASH)))
+        );
+        if (!SignatureChecker.isValidSignatureNow(_beneficiary, hash, _signature)) {
+            revert InvalidSignature(_beneficiary);
         }
+    }
 
-        bytes32 locHash = MessageHashUtils.toEthSignedMessageHash(encoded);
-        if (ECDSA.recover(locHash, _authorization) != _authorizer) revert InvalidSignature();
+    /**
+     * @dev Helper function to validate the provided convert authorization.
+     * Note: this reverts if the auth is invalid.
+     * @param _locId The ID of the LOC of the authorization.
+     * @param _creator The creator of the LOC. The signature must match this address.
+     * @param _signature The signature that is being validated.
+     */
+    function _validateConvertAuth(uint96 _locId, address _creator, bytes memory _signature) private {
+        bytes32 hash = _hashTypedDataV4(
+            keccak256(abi.encode(CONVERT_TYPEHASH, _locId, _useNonce(_creator, CONVERT_TYPEHASH)))
+        );
+        if (!SignatureChecker.isValidSignatureNow(_creator, hash, _signature)) {
+            revert InvalidSignature(_creator);
+        }
+    }
+
+    /**
+     * @dev Helper function to validate the provided redeem authorization.
+     * Note: this reverts if the auth is invalid.
+     * @param _locId The ID of the LOC of the authorization.
+     * @param _redeemAmount The amount that is authorized for redemption.
+     * @param _totalCreditedAmount The current credited amount of the LOC. This prevents a redeem auth from being valid if the LOC has changed.
+     * @param _destination The destination address to which the redeemed tokens must be sent.
+     * @param _beneficiary The beneficiary of the LOC. The signature must match this address.
+     * @param _signature The signature that is being validated.
+     */
+    function _validateRedeemAuth(
+        uint96 _locId,
+        uint256 _redeemAmount,
+        uint256 _totalCreditedAmount,
+        address _destination,
+        address _beneficiary,
+        bytes memory _signature
+    ) private {
+        bytes32 hash = _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    REDEEM_TYPEHASH,
+                    _locId,
+                    _redeemAmount,
+                    _totalCreditedAmount,
+                    _destination,
+                    _useNonce(_beneficiary, REDEEM_TYPEHASH)
+                )
+            )
+        );
+        if (!SignatureChecker.isValidSignatureNow(_beneficiary, hash, _signature)) {
+            revert InvalidSignature(_beneficiary);
+        }
     }
 
     /**
