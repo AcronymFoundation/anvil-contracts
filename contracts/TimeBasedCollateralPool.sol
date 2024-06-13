@@ -34,9 +34,10 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     bytes32 public constant CLAIMANT_ROLE = 0xde60452b7e5ef525564a29469a0bce46dbce1bcfb88f883dcbd957a9cb50ddc6; // keccak256("CLAIMANT_ROLE")
     bytes32 public constant RESETTER_ROLE = 0x007d5786643ee140934c78e29f0883c40e3db9ce7b5c23251d35d01bbe838d47; // keccak256("RESETTER_ROLE")
 
-    ICollateral public immutable collateral;
-    uint256 public immutable epochPeriodSeconds;
-    uint256 public immutable firstEpochStartTimeSeconds;
+    ICollateral public collateral;
+    bool private initialized;
+    uint256 public epochPeriodSeconds;
+    uint256 public firstEpochStartTimeSeconds;
 
     address public defaultClaimDestinationAccount;
     mapping(IERC20 => address) public tokenClaimDestinationAccountOverrides;
@@ -487,7 +488,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      *****************************/
 
     /**
-     * @notice Constructs a TimeBasedCollateralPool using the provided configuration parameters.
+     * @notice Initializes a TimeBasedCollateralPool using the provided configuration parameters.
      * @dev Please take note of:
      *  - _epochPeriodSeconds and its implications for claimable collateral guarantee windows
      *  - RBAC roles defined at the top of this file and the corresponding addresses to be assigned those roles
@@ -502,7 +503,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * the defaultClaimDestinationAccount and tokenClaimDestinationAccountOverrides mapping.
      * @param _resetter (optional) The address that will be granted the RESETTER_ROLE, allowing it to call `reset(...)`.
      */
-    constructor(
+    function initialize(
         ICollateral _collateral,
         uint256 _epochPeriodSeconds,
         address _defaultClaimDestination,
@@ -510,7 +511,10 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         address _claimant,
         address _claimRouter,
         address _resetter
-    ) {
+    ) public {
+        if (initialized) revert AlreadyInitialized();
+        initialized = true;
+
         if (_epochPeriodSeconds == 0) revert InvalidZeroAmount();
         if (_defaultClaimDestination == address(0)) revert InvalidZeroAddress();
         if (_admin == address(0)) revert InvalidZeroAddress();
