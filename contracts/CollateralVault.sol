@@ -40,12 +40,12 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
 
     bytes32 public constant COLLATERALIZABLE_TOKEN_ALLOWANCE_ADJUSTMENT_TYPEHASH =
         keccak256(
-            "CollateralizableTokenAllowanceAdjustment(uint256 chainId,address approver,address collateralizableAddress,address tokenAddress,int256 allowanceAdjustment,uint256 approverNonce)"
+            "CollateralizableTokenAllowanceAdjustment(address collateralizableAddress,address tokenAddress,int256 allowanceAdjustment,uint256 approverNonce)"
         );
 
     bytes32 public constant COLLATERALIZABLE_DEPOSIT_APPROVAL_TYPEHASH =
         keccak256(
-            "CollateralizableDepositApproval(uint256 chainId,address approver,address collateralizableAddress,address tokenAddress,uint256 depositAmount,uint256 approverNonce)"
+            "CollateralizableDepositApproval(address collateralizableAddress,address tokenAddress,uint256 depositAmount,uint256 approverNonce)"
         );
 
     /// can be modified via governance through setWithdrawalFeeBasisPoints(...).
@@ -802,8 +802,6 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
                 keccak256(
                     abi.encode(
                         COLLATERALIZABLE_TOKEN_ALLOWANCE_ADJUSTMENT_TYPEHASH,
-                        block.chainid,
-                        _accountAddress,
                         _collateralizableContractAddress,
                         _tokenAddress,
                         _allowanceAdjustment,
@@ -1004,8 +1002,6 @@ contract CollateralVault is ICollateral, ERC165, Ownable2Step, EIP712, Signature
             keccak256(
                 abi.encode(
                     COLLATERALIZABLE_DEPOSIT_APPROVAL_TYPEHASH,
-                    block.chainid,
-                    _accountAddress,
                     msg.sender,
                     _tokenAddress,
                     _amount,
