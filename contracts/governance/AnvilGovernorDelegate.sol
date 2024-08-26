@@ -95,8 +95,8 @@ contract AnvilGovernorDelegate is
         __GovernorSettings_init(votingDelay_, votingPeriod_, proposalThreshold_);
         __GovernorCountingSimple_init();
         __GovernorVotes_init(IVotes(governanceToken_));
-        // NB: initializes quorum to 4% of total supply
-        __GovernorVotesQuorumFraction_init(4);
+        // NB: initializes quorum to 5% of total supply
+        __GovernorVotesQuorumFraction_init(5);
         __GovernorStorage_init();
         __GovernorTimelockControl_init(timelock_);
     }

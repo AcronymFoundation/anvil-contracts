@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/AmperaFoundation/anvil-contracts#readme",
   "dependencies": {
-    "hardhat": "^2.22.4",
+    "hardhat": "^2.22.5",
     "@openzeppelin/contracts": "5.0.1",
     "@openzeppelin/contracts-upgradeable": "5.0.1",
     "@pythnetwork/pyth-sdk-solidity": "^2.2.1"

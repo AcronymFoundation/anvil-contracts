@@ -16,7 +16,7 @@ interface ILetterOfCredit {
     error LOCNotFound(uint96 _id);
     error AddressUnauthorizedForLOC(address _address, uint96 _forID);
     error PriceUpdateStale(uint32 _publishTimeSeconds, uint16 _maxPriceUpdateSecondsAgo);
-    error InvalidSignature();
+    error InvalidSignature(address _accountAddress);
     error InvalidConvertedLOCParameters();
     error InvalidRedeemAmount(uint256 _requestedAmount, uint256 _maxAvailable);
     error InvalidZeroAddress();

@@ -8,6 +8,7 @@ interface ITimeBasedCollateralPool {
      * ERROR TYPES *
      ***************/
 
+    error AlreadyInitialized();
     error InvalidZeroAddress();
     error InvalidZeroAmount();
     error DepositTooLarge();

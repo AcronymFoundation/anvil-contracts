@@ -179,6 +179,12 @@ interface ICollateral is ICollateralDepositTarget {
         address _tokenAddress
     ) external view returns (uint256 _allowance);
 
+    /**
+     * @notice Gets the fee for withdrawing funds from this vault, either directly or through claim.
+     * @return The fee in basis points.
+     */
+    function getWithdrawalFeeBasisPoints() external view returns (uint16);
+
     /*** State-modifying functions ***/
 
     /**
