@@ -10,26 +10,27 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/AmperaFoundation/anvil-contracts.git"
+    "url": "https://github.com/AcronymFoundation/anvil-contracts.git"
   },
   "keywords": [
     "anvil",
+    "acronymFoundation",
     "solidity",
     "ethereum",
-    "contracts",
-    "ampera"
+    "contracts"
   ],
-  "author": "Ampera Foundation <contracts@af.xyz>",
+  "author": "Acronym Foundation <contracts@af.xyz>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/AmperaFoundation/anvil-contracts/issues"
+    "url": "https://github.com/AcronymFoundation/anvil-contracts/issues"
   },
-  "homepage": "https://github.com/AmperaFoundation/anvil-contracts#readme",
+  "homepage": "https://github.com/AcronymFoundation/anvil-contracts#readme",
   "dependencies": {
-    "hardhat": "^2.22.5",
     "@openzeppelin/contracts": "5.0.1",
     "@openzeppelin/contracts-upgradeable": "5.0.1",
-    "@pythnetwork/pyth-sdk-solidity": "^2.2.1"
+    "@pythnetwork/pyth-sdk-solidity": "^2.2.1",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "hardhat": "^2.22.5"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
