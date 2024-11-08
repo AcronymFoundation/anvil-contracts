@@ -17,7 +17,7 @@ interface ILetterOfCredit {
     error AddressUnauthorizedForLOC(address _address, uint96 _forID);
     error PriceUpdateStale(uint32 _publishTimeSeconds, uint16 _maxPriceUpdateSecondsAgo);
     error InvalidSignature(address _accountAddress);
-    error InvalidConvertedLOCParameters();
+    error InvalidLOCParameters();
     error InvalidRedeemAmount(uint256 _requestedAmount, uint256 _maxAvailable);
     error InvalidZeroAddress();
     error InvalidUpgradeContract();
@@ -36,14 +36,12 @@ interface ILetterOfCredit {
     error InvalidMaxPriceUpdateSecondsAgo(uint16 _min, uint16 _max, uint16 _value);
     error InvalidLOCExtensionTimestamp(uint96 _id, uint32 _newExpirationTimestampSeconds);
     error CreditedTokenMinMaxOverlap();
-    error EnabledCreditedTokenMinPerLOCZero();
+    error EnabledCreditedTokenMinPerDynamicLOCZero();
     error LOCCreditedTokenMaxExceeded(uint256 _maxPerLOC, uint256 _value);
     error LOCCreditedTokenUnderMinimum(uint256 _minPerLOC, uint256 _value);
     error GlobalCreditedTokenMaxInUseExceeded(uint256 _globalMaxInUse, uint256 _value);
     error LOCExpired(uint96 _id, uint32 _expirationTimestampSeconds);
     error LOCAlreadyConverted(uint96 _id);
-    error LOCNotExpired(uint96 _id);
-    error UpdateNotValidYet(uint256 _validAfterTimestampSeconds);
     error LiquidationAmountTooSmall(uint256 _collateralToSendLiquidator, uint256 _creditedAmountToReceive);
 
     /**********
@@ -105,9 +103,9 @@ interface ILetterOfCredit {
 
     event CreditedTokenUpdated(
         address indexed tokenAddress,
-        uint256 minPerLOC,
-        uint256 maxPerLOC,
-        uint256 globalMaxInUse
+        uint256 minPerDynamicLOC,
+        uint256 maxPerDynamicLOC,
+        uint256 globalMaxInDynamicUse
     );
 
     event CollateralFactorUpdated(

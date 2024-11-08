@@ -1,4 +1,7 @@
-import { HardhatUserConfig } from "hardhat/config";
+import { HardhatUserConfig } from 'hardhat/config'
+import '@nomicfoundation/hardhat-chai-matchers'
+import '@nomicfoundation/hardhat-ethers'
+import 'hardhat-dependency-compiler'
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -10,6 +13,12 @@ const config: HardhatUserConfig = {
       }
     }
   },
-};
+  dependencyCompiler: {
+    paths: [
+      '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol',
+      '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol'
+    ]
+  }
+}
 
-export default config;
+export default config

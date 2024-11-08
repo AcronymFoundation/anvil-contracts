@@ -1,0 +1,32 @@
+name: Build, Lint, Test
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  build_lint_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          # See this: https://github.com/NomicFoundation/hardhat/issues/3877
+          node-version: 18.15
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run build
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test

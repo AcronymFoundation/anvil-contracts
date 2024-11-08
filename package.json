@@ -6,7 +6,14 @@
     "/contracts/**/*.sol"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx hardhat compile",
+    "lint:contracts": "prettier --list-different 'contracts/**/*.sol'",
+    "lint:ts": "prettier --config .prettierrc --list-different 'test/**/*.ts' 'hardhat.config.ts'",
+    "lint": "npm run lint:ts && npm run lint:contracts",
+    "test": "npx hardhat test",
+    "prettier": "npm run prettier:ts && npm run prettier:contracts",
+    "prettier:contracts": "prettier --write 'contracts/**/*.sol'",
+    "prettier:ts": "prettier --config .prettierrc 'test/**/*.ts' 'hardhat.config.ts' --write"
   },
   "repository": {
     "type": "git",
@@ -32,8 +39,35 @@
     "@uniswap/v2-periphery": "^1.1.0-beta.0"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
+    "@types/chai": "^4.3.7",
+    "@types/mocha": "^10.0.9",
+    "chai": "^4.3.7",
+    "ethers": "^6.13.4",
+    "hardhat": "^2.22.5",
+    "hardhat-dependency-compiler": "^1.2.1",
+    "prettier": "^2.8.8",
+    "prettier-plugin-solidity": "^1.4.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5",
-    "hardhat": "^2.22.5"
+    "typescript": "^5.4.5"
+  },
+  "prettier": {
+    "printWidth": 120,
+    "overrides": [
+      {
+        "files": [
+          "*.ts",
+          "*.js"
+        ],
+        "options": {
+          "semi": false,
+          "trailingComma": "none",
+          "singleQuote": true,
+          "printWidth": 120
+        }
+      }
+    ]
   }
 }
