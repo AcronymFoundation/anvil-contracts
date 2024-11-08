@@ -6,26 +6,28 @@ import "./interfaces/ILetterOfCredit.sol";
 import "./interfaces/ILiquidator.sol";
 import "./interfaces/ILiquidatable.sol";
 import "./Refundable.sol";
-import "./SignatureNonces.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {SignatureNoncesUpgradeable} from "./SignatureNoncesUpgradeable.sol";
 
 /**
  * @title Contract for the creation, management, and redemption of collateralized Letters of Credit (LOCs) between parties.
+ *
+ * @dev Note: This contract follows the Initializable pattern and is only usable via delegate call.
  */
 contract LetterOfCredit is
     ILetterOfCredit,
     ILiquidatable,
-    Ownable2Step,
-    ReentrancyGuard,
+    Ownable2StepUpgradeable,
+    ReentrancyGuardUpgradeable,
     Refundable,
-    EIP712,
-    SignatureNonces
+    EIP712Upgradeable,
+    SignatureNoncesUpgradeable
 {
     using SafeERC20 for IERC20;
 
@@ -33,39 +35,41 @@ contract LetterOfCredit is
      * CONTRACT STATE *
      ******************/
 
+    /// EIP-712 type hash for cancelLOC approval signatures if the authorized party wishes to allow others execute.
     bytes32 public constant CANCEL_TYPEHASH = keccak256("CancelAuthorization(uint96 locId,uint256 approverNonce)");
+    /// EIP-712 type hash for convertLOC approval signatures if the authorized party wishes to allow others execute.
     bytes32 public constant CONVERT_TYPEHASH = keccak256("ConvertAuthorization(uint96 locId,uint256 approverNonce)");
+    /// EIP-712 type hash for redeemLOC approval signatures if the authorized party wishes to allow others execute.
     bytes32 public constant REDEEM_TYPEHASH =
         keccak256(
             "RedeemAuthorization(uint96 locId,uint256 creditedAmountToRedeem,uint256 creditedTokenAmount,address destinationAddress,uint256 approverNonce)"
         );
 
     /// NB: uint96 stores up to 7.9 x 10^28 and packs tightly with addresses (12 + 20 = 32 bytes).
-    uint96 public locNonce;
+    uint96 private locNonce;
 
     /// Max age of oracle update.
     /// NB: uint16 gets us up to ~18hrs, which should be plenty. If our oracle is that stale we have very large problems.
-    uint16 public maxPriceUpdateSecondsAgo = 300; // 5 minutes (for now).
+    uint16 public maxPriceUpdateSecondsAgo;
 
     /// Extending a LOC can make it so that the total duration of any given LOC may be larger than this, but no LOC may
     /// have more than this number of seconds remaining.
-    uint32 public maxLocDurationSeconds = 60 * 60 * 24 * 100; // 100 days
-
-    /// id (nonce) => Letter of Credit
-    mapping(uint96 => LOC) public locs;
-
-    /*** GOVERNABLE FIELDS ***/
+    uint32 public maxLocDurationSeconds;
 
     /// The ICollateral contract to use for new LOCs, after which, it is stored on the LOC referenced.
     ICollateral public collateralContract;
     // The IPriceOracle to use for all price interactions (NB: for both new and existing LOCs).
     IPriceOracle public priceOracle;
 
+    /// id (nonce) => Letter of Credit
+    mapping(uint96 id => LOC letterOfCredit) private locs;
+
     /// Credited Token Address => token available for use as LOC credited tokens and its limits for use.
-    mapping(address => CreditedToken) public creditedTokens;
+    mapping(address creditedTokenAddress => CreditedToken creditedToken) private creditedTokens;
 
     /// collateral token address => credited token address => collateral factor basis points.
-    mapping(address => mapping(address => CollateralFactor)) public collateralToCreditedToCollateralFactors;
+    mapping(address collateralTokenAddress => mapping(address creditedTokenAddress => CollateralFactor collateralFactor))
+        private collateralToCreditedToCollateralFactors;
 
     /***********
      * GETTERS *
@@ -94,17 +98,17 @@ contract LetterOfCredit is
      ***********/
 
     struct CreditedToken {
-        uint256 minPerLOC;
-        uint256 maxPerLOC;
-        uint256 globalMaxInUse;
-        uint256 globalAmountInUse;
+        uint256 minPerDynamicLOC;
+        uint256 maxPerDynamicLOC;
+        uint256 globalMaxInDynamicUse;
+        uint256 globalAmountInDynamicUse;
     }
 
     struct CreditedTokenConfig {
         address tokenAddress;
-        uint256 minPerLOC;
-        uint256 maxPerLOC;
-        uint256 globalMaxInUse;
+        uint256 minPerDynamicLOC;
+        uint256 maxPerDynamicLOC;
+        uint256 globalMaxInDynamicUse;
     }
 
     struct CollateralFactor {
@@ -149,25 +153,40 @@ contract LetterOfCredit is
      * FUNCTIONS *
      *************/
 
+    /// Make it so the initializer cannot be called directly on the delegate.
+    constructor() initializer {}
+
     /**
-     * @notice Deploys the `LetterOfCredit` contract, setting the necessary configuration parameters defining how it may
+     * @notice Initializes the `LetterOfCredit` contract, setting the necessary configuration parameters defining how it may
      * be used.
      * @param _collateralContract The ICollateral contract to use for collateral.
      * @param _priceOracle The IPriceOracle contract to use for oracle prices.
+     * @param _maxPriceUpdateSecondsAgo The maximum age, in seconds, of an oracle price update that is valid for
+     * operations requiring oracle prices.
+     * @param _maxLocDurationSeconds The maximum time until expiration a LOC may have at any given time.
      * @param _creditedTokens The tokens to support as the Credited Token for Letters of Credit.
      * @param _assetPairCollateralFactors The asset pair collateral factors.
      */
-    constructor(
+    function initialize(
         ICollateral _collateralContract,
         IPriceOracle _priceOracle,
+        uint16 _maxPriceUpdateSecondsAgo,
+        uint32 _maxLocDurationSeconds,
         CreditedTokenConfig[] memory _creditedTokens,
         AssetPairCollateralFactor[] memory _assetPairCollateralFactors
-    ) Ownable(msg.sender) EIP712("LetterOfCredit", "1") {
+    ) external initializer {
+        __Ownable_init(msg.sender);
+        __EIP712_init("LetterOfCredit", "1");
+        __ReentrancyGuard_init();
+
         _upsertCreditedTokensAsOwner(_creditedTokens);
         _upsertCollateralFactorsAsOwner(_assetPairCollateralFactors);
 
         collateralContract = _collateralContract;
         priceOracle = _priceOracle;
+
+        maxLocDurationSeconds = _maxLocDurationSeconds;
+        maxPriceUpdateSecondsAgo = _maxPriceUpdateSecondsAgo;
     }
 
     /**
@@ -183,7 +202,7 @@ contract LetterOfCredit is
      * @param _collateralizableAllowanceSignature (optional) The signature to allow this collateralizable to reserve the
      * specified amount of the calling account's collateral within the `ICollateral` contract.
      */
-    function createLOC(
+    function createDynamicLOC(
         address _beneficiary,
         address _collateralTokenAddress,
         uint256 _collateralTokenAmount,
@@ -192,32 +211,8 @@ contract LetterOfCredit is
         uint32 _expirationTimestamp,
         bytes calldata _oraclePriceUpdate,
         bytes calldata _collateralizableAllowanceSignature
-    ) external payable refundExcess nonReentrant {
-        if (_collateralTokenAddress == _creditedTokenAddress) {
-            if (_collateralTokenAmount != _creditedTokenAmount) revert InvalidConvertedLOCParameters();
-
-            if (_collateralizableAllowanceSignature.length > 0) {
-                collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
-                    msg.sender,
-                    address(this),
-                    _collateralTokenAddress,
-                    Pricing.safeCastToInt256(
-                        // NB: amount with fee is what is reserved.
-                        Pricing.amountWithFee(_collateralTokenAmount, collateralContract.getWithdrawalFeeBasisPoints())
-                    ),
-                    _collateralizableAllowanceSignature
-                );
-            }
-
-            _createConvertedLOC(
-                msg.sender,
-                _beneficiary,
-                _collateralTokenAddress,
-                _collateralTokenAmount,
-                _expirationTimestamp
-            );
-            return;
-        }
+    ) external payable refundExcess nonReentrant returns (uint96) {
+        if (_collateralTokenAddress == _creditedTokenAddress) revert InvalidLOCParameters();
 
         if (_collateralizableAllowanceSignature.length > 0) {
             collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
@@ -241,84 +236,50 @@ contract LetterOfCredit is
             price = priceOracle.getPrice(_collateralTokenAddress, _creditedTokenAddress);
         }
 
-        _createLOC(
-            msg.sender,
-            _beneficiary,
-            _collateralTokenAddress,
-            _collateralTokenAmount,
-            _creditedTokenAddress,
-            _creditedTokenAmount,
-            _expirationTimestamp,
-            price
-        );
+        return
+            _createDynamicLOC(
+                msg.sender,
+                _beneficiary,
+                _collateralTokenAddress,
+                _collateralTokenAmount,
+                _creditedTokenAddress,
+                _creditedTokenAmount,
+                _expirationTimestamp,
+                price
+            );
     }
 
     /**
-     * @notice Creates a new LOC from an expired LOC, releasing the old LOC and repurposing its collateral.
-     * @dev This mainly exists as a cheaper way to reuse collateral.
-     * @param _locId The ID of the existing expired LOC to releasing and from which to reuse collateral.
-     * @param _expirationTimestamp The expiration time of the LOC.
+     * @notice Creates a LOC with the caller as the creator.
      * @param _beneficiary The beneficiary of the LOC.
-     * @param _oraclePriceUpdate (optional) The oracle price update to use in LOC collateral factor validation. If this
-     * is not provided, the most recent price will be fetched and validated against recency constraints.
+     * @param _tokenAddress The collateral/credited token address of the LOC.
+     * @param _tokenAmount The amount of the LOC. Note: more than this will be reserved if there is a claim fee.
+     * @param _expirationTimestamp The expiration time of the LOC.
+     * @param _collateralizableAllowanceSignature (optional) The signature to allow this collateralizable to reserve the
+     * specified amount of the calling account's collateral within the `ICollateral` contract.
      */
-    function createLOCFromExpired(
-        uint96 _locId,
+    function createStaticLOC(
         address _beneficiary,
+        address _tokenAddress,
+        uint256 _tokenAmount,
         uint32 _expirationTimestamp,
-        bytes memory _oraclePriceUpdate
-    ) external payable refundExcess nonReentrant {
-        LOC memory loc = locs[_locId];
-        uint256 creditedTokenAmount = loc.creditedTokenAmount;
-
-        if (creditedTokenAmount == 0) revert LOCNotFound(_locId);
-        if (msg.sender != loc.creator) revert AddressUnauthorizedForLOC(msg.sender, _locId);
-        if (_expirationTimestamp <= block.timestamp) revert LOCExpired(0, _expirationTimestamp);
-        if (loc.expirationTimestamp > block.timestamp) revert LOCNotExpired(_locId);
-        if (_expirationTimestamp - block.timestamp > maxLocDurationSeconds)
-            revert MaxLOCDurationExceeded(maxLocDurationSeconds, _expirationTimestamp);
-
-        // NB: would put loc.collateralTokenAmount on the stack as well, but then compilation fails unless we use experimental compilation flag --viaIR.
-        // If deemed safe, put this on the stack as well for savings of ~500 gas.
-        address creditedTokenAddress = loc.creditedTokenAddress;
-        address collateralTokenAddress = loc.collateralTokenAddress;
-
-        delete locs[_locId];
-        emit LOCCanceled(_locId);
-
-        if (creditedTokenAddress != collateralTokenAddress) {
-            Pricing.OraclePrice memory price;
-            if (_oraclePriceUpdate.length > 0) {
-                price = priceOracle.updatePrice{value: msg.value}(
-                    collateralTokenAddress,
-                    creditedTokenAddress,
-                    _oraclePriceUpdate
-                );
-            } else {
-                price = priceOracle.getPrice(collateralTokenAddress, creditedTokenAddress);
-            }
-            _validatePricePublishTime(uint32(price.publishTime));
-            _validateAndUpdateCreditedTokenUsageForLOCCreation(creditedTokenAddress, creditedTokenAmount, true);
-            _validateLOCCreationCollateralFactor(
-                collateralTokenAddress,
-                loc.collateralTokenAmount,
-                creditedTokenAddress,
-                creditedTokenAmount,
-                price
+        bytes calldata _collateralizableAllowanceSignature
+    ) external nonReentrant returns (uint96) {
+        if (_collateralizableAllowanceSignature.length > 0) {
+            int256 amountWithFee = Pricing.safeCastToInt256(
+                // NB: amount with fee is what is reserved.
+                Pricing.amountWithFee(_tokenAmount, collateralContract.getWithdrawalFeeBasisPoints())
+            );
+            collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
+                msg.sender,
+                address(this),
+                _tokenAddress,
+                amountWithFee,
+                _collateralizableAllowanceSignature
             );
         }
 
-        _persistAndEmitNewLOCCreated(
-            loc.collateralId,
-            msg.sender,
-            _beneficiary,
-            collateralTokenAddress,
-            loc.collateralTokenAmount,
-            loc.claimableCollateral,
-            creditedTokenAddress,
-            creditedTokenAmount,
-            _expirationTimestamp
-        );
+        return _createStaticLOC(msg.sender, _beneficiary, _tokenAddress, _tokenAmount, _expirationTimestamp);
     }
 
     /**
@@ -410,7 +371,7 @@ contract LetterOfCredit is
      * @notice Adds/removes collateral to/from the specified LOC.
      * @dev Note: collateral may only be removed from a LOC if the resulting collateral factor is at most the creation
      * collateral factor for the asset pair (i.e. a new LOC could be created with the resulting collateral amount).
-     * @dev Only the creator may invoke this operation, as it's their collateral.
+     * @dev Only the creator may invoke this operation, as it is their collateral.
      * @param _locId The ID of the LOC for which collateral should be modified.
      * @param _byAmount The signed amount by which the collateral should be modified (add if positive, remove if negative).
      * @param _oraclePriceUpdate (optional) The oracle price update to use if removing collateral to make sure the
@@ -430,10 +391,11 @@ contract LetterOfCredit is
         if (loc.creditedTokenAmount == 0) revert LOCNotFound(_locId);
         if (msg.sender != loc.creator) revert AddressUnauthorizedForLOC(msg.sender, _locId);
         if (loc.collateralTokenAddress == loc.creditedTokenAddress) revert LOCAlreadyConverted(_locId);
+        if (loc.expirationTimestamp <= block.timestamp) revert LOCExpired(_locId, loc.expirationTimestamp);
 
         if (_collateralizableAllowanceSignature.length > 0) {
             // NB: this does not forbid decreasing the allowance if releasing collateral. That shouldn't happen often but is a legitimate use case.
-            collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
+            loc.collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
                 msg.sender,
                 address(this),
                 loc.collateralTokenAddress,
@@ -484,13 +446,6 @@ contract LetterOfCredit is
         locs[_locId].claimableCollateral = newClaimableAmount;
 
         emit LOCCollateralModified(_locId, loc.collateralTokenAmount, newCollateralAmount, newClaimableAmount);
-    }
-
-    enum Operation {
-        IntentionallyUnused, // 0
-        CancelLOC, // 1
-        RedeemLOC, // 2
-        ConvertLOC // 3
     }
 
     /*****************
@@ -615,53 +570,59 @@ contract LetterOfCredit is
      *********************/
 
     /**
-     * @notice Creates a "converted" LOC, which is just a LOC where the credited asset is the collateral asset (1:1).
+     * @notice Creates a static LOC, which is just a LOC where the credited asset is the collateral asset (1:1).
      * @param _creator The transaction sender and creator of the LOC.
      * @param _beneficiary The beneficiary of the LOC.
      * @param _tokenAddress The token address of the credited and collateral asset.
      * @param _creditedAmount The face value of the LOC.
      * @param _expirationTimestamp The expiration time of the LOC.
+     * @return _locId The created LOC ID.
      */
-    function _createConvertedLOC(
+    function _createStaticLOC(
         address _creator,
         address _beneficiary,
         address _tokenAddress,
         uint256 _creditedAmount,
         uint32 _expirationTimestamp
-    ) private {
+    ) private returns (uint96 _locId) {
         if (_expirationTimestamp <= block.timestamp) revert LOCExpired(0, _expirationTimestamp);
         if (_expirationTimestamp - block.timestamp > maxLocDurationSeconds)
             revert MaxLOCDurationExceeded(maxLocDurationSeconds, _expirationTimestamp);
 
-        // NB: reserveClaimableCollateral because we need to guarantee _creditedAmount is available for claim.
-        // See ICollateral.reserve* for more info on different reservation options.
-        (uint96 collateralId, uint256 totalAmountReserved) = collateralContract.reserveClaimableCollateral(
-            _creator,
-            _tokenAddress,
-            _creditedAmount
-        );
+        ICollateral colContract = collateralContract;
+        uint256 totalAmountReserved;
+        {
+            uint96 collateralId;
+            // NB: reserveClaimableCollateral because we need to guarantee _creditedAmount is available for claim.
+            // See ICollateral.reserve* for more info on different reservation options.
+            (collateralId, totalAmountReserved) = colContract.reserveClaimableCollateral(
+                _creator,
+                _tokenAddress,
+                _creditedAmount
+            );
 
-        /*** Create LOC ***/
-        uint96 locId = ++locNonce;
-        locs[locId] = LOC(
-            collateralId,
-            _creator,
-            _beneficiary,
-            _expirationTimestamp,
-            0, // Not liquidatable
-            0, // Not liquidatable
-            collateralContract,
-            _tokenAddress,
-            totalAmountReserved,
-            _creditedAmount,
-            _tokenAddress,
-            _creditedAmount
-        );
+            /*** Create LOC ***/
+            _locId = ++locNonce;
+            locs[_locId] = LOC(
+                collateralId,
+                _creator,
+                _beneficiary,
+                _expirationTimestamp,
+                0, // Not liquidatable
+                0, // Not liquidatable
+                colContract,
+                _tokenAddress,
+                totalAmountReserved,
+                _creditedAmount,
+                _tokenAddress,
+                _creditedAmount
+            );
+        }
 
         emit LOCCreated(
             _creator,
             _beneficiary,
-            address(collateralContract),
+            address(colContract),
             _tokenAddress,
             totalAmountReserved,
             _creditedAmount,
@@ -670,7 +631,7 @@ contract LetterOfCredit is
             0,
             _tokenAddress,
             _creditedAmount,
-            locId
+            _locId
         );
     }
 
@@ -684,8 +645,9 @@ contract LetterOfCredit is
      * @param _creditedTokenAmount The face value amount of the LOC.
      * @param _expirationTimestamp The expiration time of the LOC.
      * @param _price (optional) The oracle price to use for LOC creation calculations.
+     * @return The ID of the created LOC.
      */
-    function _createLOC(
+    function _createDynamicLOC(
         address _creator,
         address _beneficiary,
         address _collateralTokenAddress,
@@ -694,13 +656,13 @@ contract LetterOfCredit is
         uint256 _creditedTokenAmount,
         uint32 _expirationTimestamp,
         Pricing.OraclePrice memory _price
-    ) private {
+    ) private returns (uint96) {
         if (_expirationTimestamp <= block.timestamp) revert LOCExpired(0, _expirationTimestamp);
         if (_expirationTimestamp - block.timestamp > maxLocDurationSeconds)
             revert MaxLOCDurationExceeded(maxLocDurationSeconds, _expirationTimestamp);
 
         _validatePricePublishTime(uint32(_price.publishTime));
-        _validateAndUpdateCreditedTokenUsageForLOCCreation(_creditedTokenAddress, _creditedTokenAmount, false);
+        _validateAndUpdateCreditedTokenUsageForDynamicLOCCreation(_creditedTokenAddress, _creditedTokenAmount);
         _validateLOCCreationCollateralFactor(
             _collateralTokenAddress,
             _collateralTokenAmount,
@@ -715,17 +677,18 @@ contract LetterOfCredit is
             _collateralTokenAmount
         );
 
-        _persistAndEmitNewLOCCreated(
-            collateralId,
-            _creator,
-            _beneficiary,
-            _collateralTokenAddress,
-            _collateralTokenAmount,
-            claimableCollateral,
-            _creditedTokenAddress,
-            _creditedTokenAmount,
-            _expirationTimestamp
-        );
+        return
+            _persistAndEmitNewLOCCreated(
+                collateralId,
+                _creator,
+                _beneficiary,
+                _collateralTokenAddress,
+                _collateralTokenAmount,
+                claimableCollateral,
+                _creditedTokenAddress,
+                _creditedTokenAmount,
+                _expirationTimestamp
+            );
     }
 
     /**
@@ -741,6 +704,7 @@ contract LetterOfCredit is
      * @param _creditedTokenAddress The token address of the credited token.
      * @param _creditedTokenAmount The face value amount of the LOC.
      * @param _expirationTimestamp The expiration time of the LOC.
+     * @return _locId The ID of the newly created LOC.
      */
     function _persistAndEmitNewLOCCreated(
         uint96 _collateralId,
@@ -752,7 +716,7 @@ contract LetterOfCredit is
         address _creditedTokenAddress,
         uint256 _creditedTokenAmount,
         uint32 _expirationTimestamp
-    ) private {
+    ) private returns (uint96 _locId) {
         uint16 collateralFactorBasisPoints = collateralToCreditedToCollateralFactors[_collateralTokenAddress][
             _creditedTokenAddress
         ].collateralFactorBasisPoints;
@@ -761,8 +725,8 @@ contract LetterOfCredit is
         ].liquidatorIncentiveBasisPoints;
 
         /*** Create LOC ***/
-        uint96 locId = ++locNonce;
-        locs[locId] = LOC(
+        _locId = ++locNonce;
+        locs[_locId] = LOC(
             _collateralId,
             _creator,
             _beneficiary,
@@ -789,7 +753,7 @@ contract LetterOfCredit is
             liquidatorIncentiveBasisPoints,
             _creditedTokenAddress,
             _creditedTokenAmount,
-            locId
+            _locId
         );
     }
 
@@ -945,7 +909,7 @@ contract LetterOfCredit is
 
                 /*** Approve liquidator to withdraw the collateral from this contract ***/
                 // NB: we do not verify that the liquidator actually transferred this amount in order to save gas.
-                IERC20(collateralTokenAddress).approve(_iLiquidatorToUse, _claimableCollateralUsed);
+                IERC20(collateralTokenAddress).forceApprove(_iLiquidatorToUse, _claimableCollateralUsed);
 
                 // NB: utilizing scope to free stack space and prevent "Stack too deep" compile error.
                 {
@@ -1010,7 +974,8 @@ contract LetterOfCredit is
         }
 
         // Free up global credited token max headroom.
-        creditedTokens[creditedTokenAddress].globalAmountInUse -= liquidationContext.creditedTokenAmountToReceive;
+        creditedTokens[creditedTokenAddress].globalAmountInDynamicUse -= liquidationContext
+            .creditedTokenAmountToReceive;
     }
 
     /**
@@ -1146,7 +1111,7 @@ contract LetterOfCredit is
 
         address creditedTokenAddress = _loc.creditedTokenAddress;
         if (creditedTokenAddress != _loc.collateralTokenAddress) {
-            creditedTokens[creditedTokenAddress].globalAmountInUse -= _loc.creditedTokenAmount;
+            creditedTokens[creditedTokenAddress].globalAmountInDynamicUse -= _loc.creditedTokenAmount;
         }
     }
 
@@ -1266,27 +1231,23 @@ contract LetterOfCredit is
      * @dev Validates the provided CreditedToken for use in LOC creation, reverting if invalid.
      * @param _creditedTokenAddress The address of the credited token.
      * @param _creditedTokenAmount The amount of the credited token to be used for the creation of a LOC.
-     * @param _isCreatingFromExisting True if the LOC to be created exists but is no longer in use (e.g. expired).
      */
-    function _validateAndUpdateCreditedTokenUsageForLOCCreation(
+    function _validateAndUpdateCreditedTokenUsageForDynamicLOCCreation(
         address _creditedTokenAddress,
-        uint256 _creditedTokenAmount,
-        bool _isCreatingFromExisting
+        uint256 _creditedTokenAmount
     ) private {
         CreditedToken memory creditedToken = creditedTokens[_creditedTokenAddress];
-        if (_creditedTokenAmount > creditedToken.maxPerLOC)
-            revert LOCCreditedTokenMaxExceeded(creditedToken.maxPerLOC, _creditedTokenAmount);
+        if (_creditedTokenAmount > creditedToken.maxPerDynamicLOC)
+            revert LOCCreditedTokenMaxExceeded(creditedToken.maxPerDynamicLOC, _creditedTokenAmount);
 
-        if (_creditedTokenAmount < creditedToken.minPerLOC)
-            revert LOCCreditedTokenUnderMinimum(creditedToken.minPerLOC, _creditedTokenAmount);
+        if (_creditedTokenAmount < creditedToken.minPerDynamicLOC)
+            revert LOCCreditedTokenUnderMinimum(creditedToken.minPerDynamicLOC, _creditedTokenAmount);
 
-        if (!_isCreatingFromExisting) {
-            uint256 newCreditedAmountInUse = creditedToken.globalAmountInUse + _creditedTokenAmount;
-            if (newCreditedAmountInUse > creditedToken.globalMaxInUse)
-                revert GlobalCreditedTokenMaxInUseExceeded(creditedToken.globalMaxInUse, newCreditedAmountInUse);
+        uint256 newCreditedAmountInUse = creditedToken.globalAmountInDynamicUse + _creditedTokenAmount;
+        if (newCreditedAmountInUse > creditedToken.globalMaxInDynamicUse)
+            revert GlobalCreditedTokenMaxInUseExceeded(creditedToken.globalMaxInDynamicUse, newCreditedAmountInUse);
 
-            creditedTokens[_creditedTokenAddress].globalAmountInUse = newCreditedAmountInUse;
-        }
+        creditedTokens[_creditedTokenAddress].globalAmountInDynamicUse = newCreditedAmountInUse;
     }
 
     /**
@@ -1409,7 +1370,7 @@ contract LetterOfCredit is
      * @param _assetPairCollateralFactors The asset pair collateral factors to update
      */
     function _upsertCollateralFactorsAsOwner(AssetPairCollateralFactor[] memory _assetPairCollateralFactors) private {
-        for (uint256 i = 0; i < _assetPairCollateralFactors.length; i++) {
+        for (uint256 i = 0; i < _assetPairCollateralFactors.length; ++i) {
             AssetPairCollateralFactor memory apcf = _assetPairCollateralFactors[i];
             CollateralFactor memory cf = apcf.collateralFactor;
 
@@ -1449,24 +1410,24 @@ contract LetterOfCredit is
      * @param _creditedTokens The credited tokens to add/modify.
      */
     function _upsertCreditedTokensAsOwner(CreditedTokenConfig[] memory _creditedTokens) private {
-        for (uint256 i = 0; i < _creditedTokens.length; i++) {
+        for (uint256 i = 0; i < _creditedTokens.length; ++i) {
             CreditedTokenConfig memory config = _creditedTokens[i];
-            uint256 minPerLOC = config.minPerLOC;
-            uint256 maxPerLOC = config.maxPerLOC;
+            uint256 minPerDynamicLOC = config.minPerDynamicLOC;
+            uint256 maxPerDynamicLOC = config.maxPerDynamicLOC;
             address tokenAddress = config.tokenAddress;
-            uint256 globalMaxInUse = config.globalMaxInUse;
+            uint256 globalMaxInDynamicUse = config.globalMaxInDynamicUse;
 
             // NB: If disabling this credited token, should be able to zero out all state, else validate.
-            if (globalMaxInUse > 0) {
-                if (minPerLOC >= maxPerLOC) revert CreditedTokenMinMaxOverlap();
-                if (minPerLOC == 0) revert EnabledCreditedTokenMinPerLOCZero();
+            if (globalMaxInDynamicUse > 0) {
+                if (minPerDynamicLOC >= maxPerDynamicLOC) revert CreditedTokenMinMaxOverlap();
+                if (minPerDynamicLOC == 0) revert EnabledCreditedTokenMinPerDynamicLOCZero();
             }
 
-            creditedTokens[tokenAddress].minPerLOC = minPerLOC;
-            creditedTokens[tokenAddress].maxPerLOC = maxPerLOC;
-            creditedTokens[tokenAddress].globalMaxInUse = globalMaxInUse;
+            creditedTokens[tokenAddress].minPerDynamicLOC = minPerDynamicLOC;
+            creditedTokens[tokenAddress].maxPerDynamicLOC = maxPerDynamicLOC;
+            creditedTokens[tokenAddress].globalMaxInDynamicUse = globalMaxInDynamicUse;
 
-            emit CreditedTokenUpdated(tokenAddress, minPerLOC, maxPerLOC, globalMaxInUse);
+            emit CreditedTokenUpdated(tokenAddress, minPerDynamicLOC, maxPerDynamicLOC, globalMaxInDynamicUse);
         }
     }
 }

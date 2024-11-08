@@ -7,6 +7,16 @@ issue collateral-backed letters of credit, and make vault-based tokens available
 pools. Anvil's mission is to provide flexible building blocks to bring efficient and transparent 
 collateralized finance into an increasingly decentralized world.
 
+## Local Development
+### Dependencies
+* NodeJS 20 (recommended via [NVM](https://github.com/nvm-sh/nvm))
+
+### Installing, building, and running tests
+* `nvm i` (if using NVM)
+* `npm i`
+* `npm run build`
+* `npm test`
+
 ## Documentation
 Protocol Documentation: https://docs.anvil.xyz/protocol-concepts
 
@@ -14,19 +24,20 @@ Performed Audits: https://docs.anvil.xyz/audits
 
 ## Mainnet Contract Addresses
 
-| Name                             | Address                                                                                                              |
-|----------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| Anvil                            | [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/address/0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc)|
-| AnvilGovernorDelegate            | [0xfe1118cE38818EA3C167929eacb6310CDc42a361](https://etherscan.io/address/0xfe1118cE38818EA3C167929eacb6310CDc42a361)|
-| AnvilGovernorDelegator           | [0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9](https://etherscan.io/address/0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9)|
-| AnvilTimelock                    | [0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21](https://etherscan.io/address/0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21)|
-| Claim                            | [0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac](https://etherscan.io/address/0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac)|
-| CollateralVault                  | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f)|
-| LetterOfCredit                   | [0x1A3251d83B4ed97d8E1d8451613D7DD9B4f42961](https://etherscan.io/address/0x1A3251d83B4ed97d8E1d8451613D7DD9B4f42961)|
-| PythPriceOracle                  | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)|
-| TimeBasedCollateralPool Singleton| [0xd042C267758eDDf34B481E1F539d637e41db3e5a](https://etherscan.io/address/0xd042C267758eDDf34B481E1F539d637e41db3e5a)|
-| TimeBasedCollateralPool Beacon   | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14)|
-| UniswapLiquidator                | [0xe358594373B4C7D268204f3D1E5226ce4dB2A712](https://etherscan.io/address/0xe358594373B4C7D268204f3D1E5226ce4dB2A712)|
+| Name                              | Address                                                                                                               |
+|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| Anvil                             | [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/address/0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc) |
+| AnvilGovernorDelegate             | [0xfe1118cE38818EA3C167929eacb6310CDc42a361](https://etherscan.io/address/0xfe1118cE38818EA3C167929eacb6310CDc42a361) |
+| AnvilGovernorDelegator            | [0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9](https://etherscan.io/address/0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9) |
+| AnvilTimelock                     | [0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21](https://etherscan.io/address/0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21) |
+| Claim                             | [0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac](https://etherscan.io/address/0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac) |
+| CollateralVault                   | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f) |
+| LetterOfCredit V0 (deprecated)    | [0x1A3251d83B4ed97d8E1d8451613D7DD9B4f42961](https://etherscan.io/address/0x1A3251d83B4ed97d8E1d8451613D7DD9B4f42961) |
+| LetterOfCredit                    | TBD |
+| PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05) |
+| TimeBasedCollateralPool Singleton | [0xd042C267758eDDf34B481E1F539d637e41db3e5a](https://etherscan.io/address/0xd042C267758eDDf34B481E1F539d637e41db3e5a) |
+| TimeBasedCollateralPool Beacon    | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14) |
+| UniswapLiquidator                 | [0xe358594373B4C7D268204f3D1E5226ce4dB2A712](https://etherscan.io/address/0xe358594373B4C7D268204f3D1E5226ce4dB2A712) |
 
 ## Contract Descriptions
 ### Anvil.sol
@@ -100,6 +111,11 @@ Built on OpenZeppelin’s
 [Nonces.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Nonces.sol), 
 this contract provides protocol-wide nonces per account per operation for use in signatures in order to 
 ensure data synchronization, prevent replay attacks, and allow for signature cancellation.
+
+### SignatureNoncesUpgradeable.sol
+Upgradeable version of `SignatureNonces` built based on OpenZeppelin’s
+[NoncesUpgradeable.sol](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/utils/NoncesUpgradeable.sol),
+
 
 ### TimeBasedCollateralPool.sol
 A singleton contract that defines the protocol mechanism for multi-party collateral pooling for the benefit of a 
