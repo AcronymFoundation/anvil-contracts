@@ -1,11 +1,13 @@
 import { ethers } from 'hardhat'
 import { Contract, ContractFactory } from 'ethers'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { getEmittedEventArgs } from './util'
 
 export interface TestInput {
   vault: Contract
   priceOracle: Contract
   letterOfCredit: Contract
+  letterOfCreditProxyAdmin: Contract
   letterOfCreditSingleton: Contract
   mockLiquidator: Contract
   collateralToken: Contract
@@ -102,15 +104,23 @@ export async function baseSetup(): Promise<TestInput> {
     )
   ).data!
 
-  const Beacon: ContractFactory = await ethers.getContractFactory('UpgradeableBeacon')
-  const beacon: Contract = <Contract>(
-    await Beacon.deploy(await letterOfCreditSingleton.getAddress(), await owner.getAddress())
+  const Proxy = await ethers.getContractFactory('TransparentUpgradeableProxy')
+  const letterOfCreditProxy = await Proxy.deploy(
+    await letterOfCreditSingleton.getAddress(),
+    await owner.getAddress(),
+    letterOfCreditInitData
+  )
+  await letterOfCreditProxy.waitForDeployment()
+
+  const adminChangedEv = await getEmittedEventArgs(
+    letterOfCreditProxy.deploymentTransaction(),
+    letterOfCreditProxy,
+    'AdminChanged'
   )
 
-  const BeaconProxy: ContractFactory = await ethers.getContractFactory('BeaconProxy')
-  const proxy: Contract = <Contract>await BeaconProxy.deploy(await beacon.getAddress(), letterOfCreditInitData)
+  const letterOfCreditProxyAdmin = await ethers.getContractAt('ProxyAdmin', adminChangedEv.newAdmin, owner)
 
-  const letterOfCredit = await ethers.getContractAt('LetterOfCredit', await proxy.getAddress(), owner)
+  const letterOfCredit = await ethers.getContractAt('LetterOfCredit', await letterOfCreditProxy.getAddress(), owner)
 
   /*** Allow LetterOfCredit to use Vault ***/
 
@@ -141,6 +151,7 @@ export async function baseSetup(): Promise<TestInput> {
     vault,
     priceOracle,
     letterOfCredit,
+    letterOfCreditProxyAdmin,
     letterOfCreditSingleton,
     mockLiquidator,
     collateralToken,
