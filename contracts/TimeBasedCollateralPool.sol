@@ -20,6 +20,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  * epoch following the one in which they unstake (`releaseEpoch` = `unstakeEpoch + 1`). Tokens are claimable up until
  * the point that they are eligible for release (in `releaseEpoch`).
  *
+ * Note: this represents the first version of this contract and replaces the alpha deployed at 0xd042C267758eDDf34B481E1F539d637e41db3e5a.
+ *
  * @custom:security-contact security@af.xyz
  */
 contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, ERC165, AccessControl {
@@ -40,23 +42,27 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     uint256 public firstEpochStartTimeSeconds;
 
     address public defaultClaimDestinationAccount;
-    mapping(IERC20 => address) public tokenClaimDestinationAccountOverrides;
+    mapping(IERC20 token => address claimDestinationOverride) public tokenClaimDestinationAccountOverrides;
 
     /// account address => token address => AccountState.
     /// Note: this is public but 3rd parties should not depend on the units fields to be accurate, as vested unstakes
     /// may be present. Use `getAccountPoolUnits(...)` instead if looking for up-to-date information on units.
-    mapping(address => mapping(address => AccountState)) public accountTokenState;
+    mapping(address account => mapping(address token => AccountState accountState)) internal accountTokenState;
 
     /// token address => ContractState.
-    mapping(address => ContractState) public tokenContractState;
+    mapping(address token => ContractState contractState) internal tokenContractState;
 
     /// token address => epoch => ExitBalance. This contains the remaining units & tokens to exit for a specific epoch.
     /// This allows the contract to set an exchange rate from AccountState units to tokens for a specific epoch.
-    mapping(address => mapping(uint256 => ExitBalance)) public tokenEpochExitBalances;
+    mapping(address token => mapping(uint256 epoch => ExitBalance exitBalance)) internal tokenEpochExitBalances;
 
     /// token address => reset nonce => ExitBalance. This contains the remaining units & tokens to exit for a unit reset.
     /// See `resetPool(...)` for more information.
-    mapping(address => mapping(uint256 => ExitBalance)) public tokenResetExitBalances;
+    mapping(address token => mapping(uint256 resetNonce => ExitBalance exitBalance)) internal tokenResetExitBalances;
+
+    /// token address => reset nonce => epoch. This stores the epoch at which each token reset occurred. This is
+    /// necessary to process unstakes across pool resets properly.
+    mapping(address token => mapping(uint256 resetNonce => uint256 epochAtTimeOfReset)) public tokenResetEpoch;
 
     /***********
      * STRUCTS *
@@ -195,12 +201,17 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
 
         uint256 accountUnitsLeft = accountState.totalUnits;
 
+        bool accountWasReset = accountState.resetNonce < tokenContractState[_tokenAddress].resetNonce;
         // Calculate balance from processed contract-level unstakes.
         {
             uint256 vestedUnits;
-            uint256 currentEpoch = getCurrentEpoch();
+            // NB: If reset, the epoch must be before the epoch of the reset to be stored in an epoch ExitBalance or
+            // it could be an ExitBalance from a post-reset stake + unstake with a different unit value.
+            uint256 unstakedIfBeforeEpoch = accountWasReset
+                ? tokenResetEpoch[_tokenAddress][accountState.resetNonce]
+                : getCurrentEpoch();
             uint256 epoch = accountState.firstPendingUnstakeEpoch;
-            if (_nonZeroAndLessThan(epoch, currentEpoch)) {
+            if (_nonZeroAndLessThan(epoch, unstakedIfBeforeEpoch)) {
                 (vestedUnits, _balance) = getAccountExitUnitsAndTokens(
                     _tokenAddress,
                     epoch,
@@ -208,7 +219,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
                     false
                 );
                 epoch = accountState.secondPendingUnstakeEpoch;
-                if (_nonZeroAndLessThan(epoch, currentEpoch)) {
+                if (_nonZeroAndLessThan(epoch, unstakedIfBeforeEpoch)) {
                     (uint256 units, uint256 tokens) = getAccountExitUnitsAndTokens(
                         _tokenAddress,
                         epoch,
@@ -223,7 +234,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
             accountUnitsLeft -= vestedUnits;
         }
 
-        if (accountState.resetNonce < tokenContractState[_tokenAddress].resetNonce) {
+        if (accountWasReset) {
             // The account has a reset to process. Add the account's share of the reset balance to _balance.
             ExitBalance memory exit = tokenResetExitBalances[_tokenAddress][accountState.resetNonce];
             _balance += Pricing.calculateProportionOfTotal(accountUnitsLeft, exit.unitsLeft, exit.tokensLeft);
@@ -309,7 +320,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         uint256 endOfNextEpoch = getEpochEndTimestamp(currentEpoch + 1);
 
         _claimableCollateral = new ClaimableCollateral[](_tokens.length);
-        for (uint256 i = 0; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; ++i) {
             address tokenAddress = address(_tokens[i]);
 
             _claimableCollateral[i].endOfCurrentEpochTimestampSeconds = endOfCurrentEpoch;
@@ -330,7 +341,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
             uint256 secondEpoch = contractState.secondPendingUnstakeEpoch;
             uint256 firstEpoch = contractState.firstPendingUnstakeEpoch;
 
-            for (uint256 epochAdjustment = 0; epochAdjustment < 2; epochAdjustment++) {
+            for (uint256 epochAdjustment = 0; epochAdjustment < 2; ++epochAdjustment) {
                 // claimable this epoch
                 if (_nonZeroAndLessThan(secondEpoch, currentEpoch + epochAdjustment)) {
                     unitsUnstaked = contractState.firstPendingUnstakeUnits + contractState.secondPendingUnstakeUnits;
@@ -487,6 +498,11 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * STATE-MODIFYING FUNCTIONS *
      *****************************/
 
+    constructor() {
+        // Make it so this contract can only be used via delegatecall.
+        initialized = true;
+    }
+
     /**
      * @notice Initializes a TimeBasedCollateralPool using the provided configuration parameters.
      * @dev Please take note of:
@@ -551,7 +567,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
     function claim(IERC20[] calldata _tokens, uint256[] calldata _amounts) external onlyRole(CLAIMANT_ROLE) {
         if (_tokens.length != _amounts.length) revert RelatedArraysLengthMismatch(_tokens.length, _amounts.length);
 
-        for (uint256 i = 0; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; ++i) {
             uint256 amount = _amounts[i];
             if (amount == 0) {
                 // we could revert, but there may be some valid claims.
@@ -595,7 +611,22 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         uint256 _amount,
         bytes calldata _collateralizableDepositApprovalSignature
     ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256) {
-        collateral.depositFromAccount(msg.sender, address(_token), _amount, _collateralizableDepositApprovalSignature);
+        try
+            collateral.depositFromAccount(
+                msg.sender,
+                address(_token),
+                _amount,
+                _collateralizableDepositApprovalSignature
+            )
+        {} catch (bytes memory reason) {
+            if (bytes4(reason) != ICollateral.InvalidSignature.selector) {
+                // Revert with the original error message
+                assembly ("memory-safe") {
+                    revert(add(reason, 0x20), mload(reason))
+                }
+            }
+            // If it reverts for signature reasons, we do not want to let the transaction revert [yet].
+        }
 
         return _stake(_token, _amount);
     }
@@ -604,7 +635,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * @inheritdoc ITimeBasedCollateralPool
      */
     function releaseEligibleTokens(address _account, IERC20[] calldata _tokens) external {
-        for (uint256 i = 0; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; ++i) {
             _releaseEligibleAccountTokens(_account, address(_tokens[i]));
         }
     }
@@ -613,7 +644,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * @inheritdoc ITimeBasedCollateralPool
      */
     function resetPool(IERC20[] calldata _tokens) external onlyRole(RESETTER_ROLE) {
-        for (uint256 i = 0; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; ++i) {
             _resetPool(address(_tokens[i]));
         }
     }
@@ -651,9 +682,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         bytes calldata _collateralizableApprovalSignature
     ) external withEligibleAccountTokensReleased(msg.sender, address(_token)) returns (uint256) {
         if (_collateralizableApprovalSignature.length > 0) {
-            collateral.modifyCollateralizableTokenAllowanceWithSignature(
-                msg.sender,
-                address(this),
+            _tryModifyCollateralizableAllowanceWithSignature(
                 address(_token),
                 Pricing.safeCastToInt256(_amount),
                 _collateralizableApprovalSignature
@@ -678,9 +707,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
             _pool.releaseEligibleTokens(msg.sender, tokens);
         }
         if (_collateralizableApprovalSignature.length > 0) {
-            collateral.modifyCollateralizableTokenAllowanceWithSignature(
-                msg.sender,
-                address(this),
+            _tryModifyCollateralizableAllowanceWithSignature(
                 address(_token),
                 Pricing.safeCastToInt256(_amount),
                 _collateralizableApprovalSignature
@@ -883,13 +910,13 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
      * @dev Releases all vested unstakes from the `accountTokenState` struct for the provided token and account.
      * @param _account The address of the account for which vested unstakes will be released.
      * @param _tokenAddress The address of the ERC-20 token to be released.
-     * @return _poolWasReset Whether or not the pool was reset as a result of this call.
+     * @return _accountWasReset Whether or not the account was reset as a result of this call.
      */
     function _releaseEligibleAccountTokens(
         address _account,
         address _tokenAddress
-    ) internal returns (bool _poolWasReset) {
-        _poolWasReset = _unlockEligibleTokenContractPendingUnstakes(_tokenAddress);
+    ) internal returns (bool _accountWasReset) {
+        _accountWasReset = _unlockEligibleTokenContractPendingUnstakes(_tokenAddress);
 
         (uint256 totalUnitsToRelease, uint256 totalTokensToRelease) = _resetAccountTokenStateIfApplicable(
             _account,
@@ -900,10 +927,12 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
             (uint256 units, uint256 tokens) = _processAccountTokenUnstakes(_account, _tokenAddress);
             totalUnitsToRelease += units;
             totalTokensToRelease += tokens;
+        } else {
+            _accountWasReset = true;
         }
 
         if (totalUnitsToRelease == 0) {
-            return _poolWasReset;
+            return _accountWasReset;
         }
 
         collateral.transferCollateral(_tokenAddress, totalTokensToRelease, _account);
@@ -948,15 +977,17 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         //      a. A pending unstake is vested or unvested but no vested contract unstake was processed prior to pool
         //         reset. That contract state was purged in _resetPool(...), the account pool units still exist in the
         //         vault, and we can release them via the standard "everything has been unstaked" logic below.
-        //      b. A pending unstake, was vested and the contract unstake was already processed at the time of pool reset.
+        //      b. A pending unstake was vested and the contract unstake was already processed at the time of pool reset.
         //         In this case, the exchange rate was captured in tokenEpochExitBalances, and it's unsafe to process
         //         this unstake any different than the standard release process.
         uint256 unstakeUnitsToRelease;
         {
             uint256 epoch = accountStateStorage.firstPendingUnstakeEpoch;
             if (epoch > 0) {
-                uint256 currentEpoch = getCurrentEpoch();
-                if (epoch < currentEpoch) {
+                // NB: If reset, the epoch must be before the epoch of the reset to be stored in an epoch ExitBalance or
+                // it could be an ExitBalance from a post-reset stake + unstake with a different unit value.
+                uint256 epochAtTimeOfReset = tokenResetEpoch[_tokenAddress][accountResetNonce];
+                if (epoch < epochAtTimeOfReset) {
                     // NB: This is case b. from above -- do not process contract-level unstakes that have not already been processed.
                     (unstakeUnitsToRelease, _tokensToRelease) = getAccountExitUnitsAndTokens(
                         _tokenAddress,
@@ -964,14 +995,24 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
                         accountStateStorage.firstPendingUnstakeUnits,
                         false
                     );
+                    if (unstakeUnitsToRelease > 0) {
+                        ExitBalance storage exitBalance = tokenEpochExitBalances[_tokenAddress][epoch];
+                        exitBalance.unitsLeft -= unstakeUnitsToRelease;
+                        exitBalance.tokensLeft -= _tokensToRelease;
+                    }
                     epoch = accountStateStorage.secondPendingUnstakeEpoch;
-                    if (_nonZeroAndLessThan(epoch, currentEpoch)) {
+                    if (_nonZeroAndLessThan(epoch, epochAtTimeOfReset)) {
                         (uint256 units, uint256 tokens) = getAccountExitUnitsAndTokens(
                             _tokenAddress,
                             epoch,
                             accountStateStorage.secondPendingUnstakeUnits,
                             false
                         );
+                        if (units > 0) {
+                            ExitBalance storage exitBalance = tokenEpochExitBalances[_tokenAddress][epoch];
+                            exitBalance.unitsLeft -= units;
+                            exitBalance.tokensLeft -= tokens;
+                        }
                         unstakeUnitsToRelease += units;
                         _tokensToRelease += tokens;
                     }
@@ -1048,6 +1089,7 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
             // Create the reset ExitBalance so stakers can exit their tokens (see: _resetAccountTokenStateIfApplicable(...))
             tokenResetExitBalances[_tokenAddress][resetNonce] = ExitBalance(unitsToReset, tokensToReset);
         }
+        tokenResetEpoch[_tokenAddress][resetNonce] = getCurrentEpoch();
 
         // Delete all contract-level pending unstake state.
         if (contractStateStorage.firstPendingUnstakeEpoch > 0) {
@@ -1118,6 +1160,37 @@ contract TimeBasedCollateralPool is ITimeBasedCollateralPool, ICollateralPool, E
         }
 
         emit CollateralStaked(msg.sender, _token, _amount, _poolUnitsIssued);
+    }
+
+    /**
+     * @dev attempts to modify the collateralizable allowance of the msg.sender with the provided signature without
+     * reverting if that call fails.
+     * @param _collateralTokenAddress The collateral token for which the allowance is being modified.
+     * @param _collateralTokenAmount The signed amount by which the allowance should be modified (positive for increase, negative for decrease).
+     * @param _collateralizableAllowanceSignature The signature of the msg.sender approving this allowance adjustment.
+     */
+    function _tryModifyCollateralizableAllowanceWithSignature(
+        address _collateralTokenAddress,
+        int256 _collateralTokenAmount,
+        bytes calldata _collateralizableAllowanceSignature
+    ) private {
+        try
+            collateral.modifyCollateralizableTokenAllowanceWithSignature(
+                msg.sender,
+                address(this),
+                _collateralTokenAddress,
+                _collateralTokenAmount,
+                _collateralizableAllowanceSignature
+            )
+        {} catch (bytes memory reason) {
+            if (bytes4(reason) != ICollateral.InvalidSignature.selector) {
+                // Revert with the original error message
+                assembly ("memory-safe") {
+                    revert(add(reason, 0x20), mload(reason))
+                }
+            }
+            // If it reverts for signature reasons, we do not want to let the transaction revert [yet].
+        }
     }
 
     /**
