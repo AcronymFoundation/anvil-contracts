@@ -249,7 +249,7 @@ interface ICollateral is ICollateralDepositTarget {
      * account's signature.
      * @dev The signature is the EIP-712 signature formatted according to the following type hash variable:
      * bytes32 public constant COLLATERALIZABLE_TOKEN_ALLOWANCE_ADJUSTMENT_TYPEHASH =
-     *  keccak256("CollateralizableTokenAllowanceAdjustment(uint256 chainId,address approver,address collateralizableAddress,address tokenAddress,int256 allowanceAdjustment,uint256 approverNonce)");
+     *  keccak256("CollateralizableTokenAllowanceAdjustment(address collateralizableAddress,address tokenAddress,int256 allowanceAdjustment,uint256 approverNonce)");
      *
      * If this call is not successful, it will revert. If it succeeds, the caller may assume the modification succeeded.
      * @param _accountAddress The account for which approval will take place.
