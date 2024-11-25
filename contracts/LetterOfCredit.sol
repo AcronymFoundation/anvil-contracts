@@ -67,7 +67,7 @@ contract LetterOfCredit is
     /// Credited Token Address => token available for use as LOC credited tokens and its limits for use.
     mapping(address creditedTokenAddress => CreditedToken creditedToken) private creditedTokens;
 
-    /// collateral token address => credited token address => collateral factor basis points.
+    /// collateral token address => credited token address => CollateralFactor.
     mapping(address collateralTokenAddress => mapping(address creditedTokenAddress => CollateralFactor collateralFactor))
         private collateralToCreditedToCollateralFactors;
 
@@ -153,12 +153,15 @@ contract LetterOfCredit is
      * FUNCTIONS *
      *************/
 
-    /// Make it so the initializer cannot be called directly on the delegate.
-    constructor() initializer {}
+    /// Make it so this contract cannot be initialized and can only be used via delegatecall.
+    constructor() {
+        _disableInitializers();
+    }
 
     /**
      * @notice Initializes the `LetterOfCredit` contract, setting the necessary configuration parameters defining how it may
      * be used.
+     * @param _owner The address to configure as the initial owner.
      * @param _collateralContract The ICollateral contract to use for collateral.
      * @param _priceOracle The IPriceOracle contract to use for oracle prices.
      * @param _maxPriceUpdateSecondsAgo The maximum age, in seconds, of an oracle price update that is valid for
@@ -168,6 +171,7 @@ contract LetterOfCredit is
      * @param _assetPairCollateralFactors The asset pair collateral factors.
      */
     function initialize(
+        address _owner,
         ICollateral _collateralContract,
         IPriceOracle _priceOracle,
         uint16 _maxPriceUpdateSecondsAgo,
@@ -175,7 +179,7 @@ contract LetterOfCredit is
         CreditedTokenConfig[] memory _creditedTokens,
         AssetPairCollateralFactor[] memory _assetPairCollateralFactors
     ) external initializer {
-        __Ownable_init(msg.sender);
+        __Ownable_init(_owner);
         __EIP712_init("LetterOfCredit", "1");
         __ReentrancyGuard_init();
 
@@ -215,9 +219,8 @@ contract LetterOfCredit is
         if (_collateralTokenAddress == _creditedTokenAddress) revert InvalidLOCParameters();
 
         if (_collateralizableAllowanceSignature.length > 0) {
-            collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
-                msg.sender,
-                address(this),
+            _tryModifyCollateralizableAllowanceWithSignature(
+                collateralContract,
                 _collateralTokenAddress,
                 Pricing.safeCastToInt256(_collateralTokenAmount),
                 _collateralizableAllowanceSignature
@@ -270,9 +273,9 @@ contract LetterOfCredit is
                 // NB: amount with fee is what is reserved.
                 Pricing.amountWithFee(_tokenAmount, collateralContract.getWithdrawalFeeBasisPoints())
             );
-            collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
-                msg.sender,
-                address(this),
+
+            _tryModifyCollateralizableAllowanceWithSignature(
+                collateralContract,
                 _tokenAddress,
                 amountWithFee,
                 _collateralizableAllowanceSignature
@@ -395,9 +398,8 @@ contract LetterOfCredit is
 
         if (_collateralizableAllowanceSignature.length > 0) {
             // NB: this does not forbid decreasing the allowance if releasing collateral. That shouldn't happen often but is a legitimate use case.
-            loc.collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
-                msg.sender,
-                address(this),
+            _tryModifyCollateralizableAllowanceWithSignature(
+                loc.collateralContract,
                 loc.collateralTokenAddress,
                 _byAmount,
                 _collateralizableAllowanceSignature
@@ -783,6 +785,9 @@ contract LetterOfCredit is
         storedLoc.collateralId = 0;
         storedLoc.collateralContract = ICollateral(address(0));
 
+        // Free up global credited token max headroom.
+        creditedTokens[_loc.creditedTokenAddress].globalAmountInDynamicUse -= _loc.creditedTokenAmount;
+
         emit LOCConverted(
             _locId,
             _initiatorAddress,
@@ -819,6 +824,10 @@ contract LetterOfCredit is
             _loc.claimableCollateral -
             _liquidationContext.collateralToClaimAndSendLiquidator;
         storedLoc.creditedTokenAmount = _loc.creditedTokenAmount - _liquidationContext.creditedTokenAmountToReceive;
+
+        // Free up global credited token max headroom.
+        creditedTokens[_loc.creditedTokenAddress].globalAmountInDynamicUse -= _liquidationContext
+            .creditedTokenAmountToReceive;
 
         emit LOCPartiallyLiquidated(
             _locId,
@@ -972,10 +981,6 @@ contract LetterOfCredit is
         } else {
             _markLOCConverted(_locId, msg.sender, liquidatorAddress, loc, liquidationContext);
         }
-
-        // Free up global credited token max headroom.
-        creditedTokens[creditedTokenAddress].globalAmountInDynamicUse -= liquidationContext
-            .creditedTokenAmountToReceive;
     }
 
     /**
@@ -1116,6 +1121,39 @@ contract LetterOfCredit is
     }
 
     /**
+     * @dev attempts to modify the collateralizable allowance of the msg.sender with the provided signature without
+     * reverting if that call fails.
+     * @param _collateralContract The ICollateral contract to call.
+     * @param _collateralTokenAddress The collateral token for which the allowance is being modified.
+     * @param _collateralTokenAmount The signed amount by which the allowance should be modified (positive for increase, negative for decrease).
+     * @param _collateralizableAllowanceSignature The signature of the msg.sender approving this allowance adjustment.
+     */
+    function _tryModifyCollateralizableAllowanceWithSignature(
+        ICollateral _collateralContract,
+        address _collateralTokenAddress,
+        int256 _collateralTokenAmount,
+        bytes calldata _collateralizableAllowanceSignature
+    ) private {
+        try
+            _collateralContract.modifyCollateralizableTokenAllowanceWithSignature(
+                msg.sender,
+                address(this),
+                _collateralTokenAddress,
+                _collateralTokenAmount,
+                _collateralizableAllowanceSignature
+            )
+        {} catch (bytes memory reason) {
+            if (bytes4(reason) != ICollateral.InvalidSignature.selector) {
+                // Revert with the original error message
+                assembly ("memory-safe") {
+                    revert(add(reason, 0x20), mload(reason))
+                }
+            }
+            // If it reverts for signature reasons, we do not want to let the transaction revert [yet].
+        }
+    }
+
+    /**
      * @dev Helper function to validate the provided cancel authorization.
      * Note: this reverts if the auth is invalid.
      * @param _locId The ID of the LOC of the cancel authorization.
@@ -1221,10 +1259,8 @@ contract LetterOfCredit is
             _price
         );
 
-        if (
-            currentCollateralFactorBasisPoints == 0 ||
-            currentCollateralFactorBasisPoints > creationCollateralFactorBasisPoints
-        ) revert InvalidCollateralFactor(creationCollateralFactorBasisPoints, currentCollateralFactorBasisPoints);
+        if (currentCollateralFactorBasisPoints > creationCollateralFactorBasisPoints)
+            revert InvalidCollateralFactor(creationCollateralFactorBasisPoints, currentCollateralFactorBasisPoints);
     }
 
     /**

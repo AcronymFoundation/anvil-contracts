@@ -36,9 +36,11 @@ library Pricing {
         uint256 collateralInCredited = collateralAmountInCreditedToken(_collateralTokenAmount, _price);
         // Don't divide by 0
         if (collateralInCredited == 0) {
-            return 0;
+            return type(uint16).max;
         }
-        return uint16((_creditedTokenAmount * 10_000) / collateralInCredited);
+
+        uint256 collateralFactor = (_creditedTokenAmount * 10_000) / collateralInCredited;
+        return collateralFactor > type(uint16).max ? type(uint16).max : uint16(collateralFactor);
     }
 
     /**
