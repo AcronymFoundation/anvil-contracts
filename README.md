@@ -24,20 +24,21 @@ Performed Audits: https://docs.anvil.xyz/audits
 
 ## Mainnet Contract Addresses
 
-| Name                              | Address                                                                                                               |
-|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| Anvil                             | [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/address/0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc) |
-| AnvilGovernorDelegate             | [0xfe1118cE38818EA3C167929eacb6310CDc42a361](https://etherscan.io/address/0xfe1118cE38818EA3C167929eacb6310CDc42a361) |
-| AnvilGovernorDelegator            | [0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9](https://etherscan.io/address/0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9) |
-| AnvilTimelock                     | [0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21](https://etherscan.io/address/0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21) |
-| Claim                             | [0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac](https://etherscan.io/address/0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac) |
-| CollateralVault                   | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f) |
-| LetterOfCredit V0 (deprecated)    | [0x1A3251d83B4ed97d8E1d8451613D7DD9B4f42961](https://etherscan.io/address/0x1A3251d83B4ed97d8E1d8451613D7DD9B4f42961) |
-| LetterOfCredit                    | TBD |
-| PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05) |
-| TimeBasedCollateralPool Singleton | [0xd042C267758eDDf34B481E1F539d637e41db3e5a](https://etherscan.io/address/0xd042C267758eDDf34B481E1F539d637e41db3e5a) |
-| TimeBasedCollateralPool Beacon    | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14) |
-| UniswapLiquidator                 | [0xe358594373B4C7D268204f3D1E5226ce4dB2A712](https://etherscan.io/address/0xe358594373B4C7D268204f3D1E5226ce4dB2A712) |
+| Name                              | Address                                                                                                                 |
+|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| Anvil                             | [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/address/0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc)   |
+| AnvilGovernorDelegate             | [0xfe1118cE38818EA3C167929eacb6310CDc42a361](https://etherscan.io/address/0xfe1118cE38818EA3C167929eacb6310CDc42a361)   |
+| AnvilGovernorDelegator            | [0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9](https://etherscan.io/address/0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9)   |
+| AnvilTimelock                     | [0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21](https://etherscan.io/address/0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21)   |
+| Claim                             | [0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac](https://etherscan.io/address/0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac)   |
+| CollateralVault                   | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f)   |
+| LetterOfCredit Proxy              | [0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808](https://etherscan.io/address/0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808)   |
+| LetterOfCredit Proxy Admin        | [0x12225bB169b38EF8849DD4F5Cc466ae5996e341D](https://etherscan.io/address/0x12225bB169b38EF8849DD4F5Cc466ae5996e341D)   |
+| LetterOfCredit Singleton          | [0x750Ab78B4fe51292d1F0053845AACe3eA959D5AD](https://etherscan.io/address/0x750Ab78B4fe51292d1F0053845AACe3eA959D5AD)   |
+| PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)   |
+| TimeBasedCollateralPool Singleton | [0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f](https://etherscan.io/address/0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f)   |
+| TimeBasedCollateralPool Beacon    | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14)   |
+| UniswapLiquidator                 | [0x716321565e1EAbA200789E14ad92c9dA40B14589](https://etherscan.io/address/0x716321565e1EAbA200789E14ad92c9dA40B14589)   |
 
 ## Contract Descriptions
 ### Anvil.sol
@@ -89,7 +90,7 @@ asset pair has an `AssetPairCollateralFactor` configuration that defines the cre
 liquidation thresholds along with the incentive to the liquidator to process the conversion. 
 This contract’s token support is configured with ERC-20 tokens that must also be supported by the 
 `CollateralVault.sol` and `PythPriceOracle.sol` as well as their respective maximum usage 
-limits.
+limits. Note: `LetterofCredit` is deployed as a proxy that delegates to a singleton contract.
 
 ### Pricing.sol
 A contract of math-related helpers to support `CollateralVault.sol`, `PythPriceOracle.sol`, and 
