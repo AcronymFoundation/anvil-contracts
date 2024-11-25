@@ -17,8 +17,8 @@ abstract contract SignatureNoncesUpgradeable is Initializable {
 
     /// @custom:storage-location erc7201:anvil.storage.SignatureNonces
     struct SignatureNoncesStorage {
-        /// account address => signature type (e.g. a hash) => nonce
-        mapping(address => mapping(bytes32 => uint256)) _accountTypeNonces;
+        /// Stores nonces for the specified account and signature type.
+        mapping(address account => mapping(bytes32 signatureType => uint256 nonce)) _accountTypeNonces;
     }
 
     // keccak256(abi.encode(uint256(keccak256("anvil.storage.SignatureNonces")) - 1)) & ~bytes32(uint256(0xff))
