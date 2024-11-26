@@ -94,6 +94,7 @@ export async function baseSetup(): Promise<TestInput> {
 
   const letterOfCreditInitData = (
     await letterOfCreditSingleton.initialize.populateTransaction(
+      await owner.getAddress(),
       await vault.getAddress(),
       await priceOracle.getAddress(),
       300, // 5 minutes
