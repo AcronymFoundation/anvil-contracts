@@ -36,6 +36,7 @@ Performed Audits: https://docs.anvil.xyz/audits
 | LetterOfCredit Proxy Admin        | [0x12225bB169b38EF8849DD4F5Cc466ae5996e341D](https://etherscan.io/address/0x12225bB169b38EF8849DD4F5Cc466ae5996e341D)   |
 | LetterOfCredit Singleton          | [0x750Ab78B4fe51292d1F0053845AACe3eA959D5AD](https://etherscan.io/address/0x750Ab78B4fe51292d1F0053845AACe3eA959D5AD)   |
 | PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)   |
+| Reward                            | [0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA](https://etherscan.io/address/0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA)   |
 | TimeBasedCollateralPool Singleton | [0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f](https://etherscan.io/address/0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f)   |
 | TimeBasedCollateralPool Beacon    | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14)   |
 | UniswapLiquidator                 | [0x716321565e1EAbA200789E14ad92c9dA40B14589](https://etherscan.io/address/0x716321565e1EAbA200789E14ad92c9dA40B14589)   |
@@ -106,6 +107,10 @@ feed ids](https://www.pyth.network/developers/price-feed-ids) for all supported 
 ### Refundable.sol
 Contract that exposes a function modifier that may be used to ensure that calls to the modified function refund any ETH 
 to the caller that was passed to the function and not used in the function's execution.
+
+### Reward.sol
+Generic reward contract enabling cumulative reward publishing and claiming via Merkle roots by rewarded accounts. It may
+be configured to use any ERC-20 token for rewards. The `Reward.sol` address listed above uses `ANVL` as the reward token.
 
 ### SignatureNonces.sol
 Built on OpenZeppelin’s 
