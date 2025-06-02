@@ -3,6 +3,8 @@ import '@nomicfoundation/hardhat-chai-matchers'
 import '@nomicfoundation/hardhat-ethers'
 import 'hardhat-dependency-compiler'
 
+import { defineChainTasks } from './tasks/chain'
+
 const config: HardhatUserConfig = {
   solidity: {
     version: '0.8.25',
@@ -15,10 +17,13 @@ const config: HardhatUserConfig = {
   },
   dependencyCompiler: {
     paths: [
+      '@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol',
       '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol',
       '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol'
     ]
   }
 }
+
+defineChainTasks()
 
 export default config

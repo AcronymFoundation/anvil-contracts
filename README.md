@@ -17,10 +17,17 @@ collateralized finance into an increasingly decentralized world.
 * `npm run build`
 * `npm test`
 
+### Testing
+There are some sample tests that can be run via `npm run test`.
+
+You may also easily run example scripts on a fork of an existing environment (e.g. mainnet). See [./bin/examples](./bin/examples) for more info.
+
 ## Documentation
 Protocol Documentation: https://docs.anvil.xyz/protocol-concepts
 
 Performed Audits: https://docs.anvil.xyz/audits
+
+There are also example scripts in [./scripts/examples](./scripts/examples) and examples that can be run on a [mainnet] fork in [./bin/examples](./bin/examples) 
 
 ## Mainnet Contract Addresses
 
