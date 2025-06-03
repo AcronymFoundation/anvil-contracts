@@ -22,6 +22,21 @@ There are some sample tests that can be run via `npm run test`.
 
 You may also easily run example scripts on a fork of an existing environment (e.g. mainnet). See [./bin/examples](./bin/examples) for more info.
 
+### Tools
+There are various tasks defined in the [tasks/](tasks/) directory. They may be useful for querying information about and interacting with deployed contracts.
+
+Note that to use these tasks, you'll need to set the `PRIVATE_KEY` environment variable. For read-only tasks, that address does not need any ETH, and in all cases, using an address with as little ETH as possible to accomplish your goals is recommended.
+
+If not using a local node, you'll also need to set the `PROVIDER_URL` environment variable.
+
+Example:
+```
+# Note: private key is a well-known test key in this case
+PROVIDER_URL="https://eth-mainnet.g.alchemy.com/v2/yourKeyHere" \
+PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+npx hardhat --network mainnet getProxyImplementation --proxy-address 0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808
+```
+
 ## Documentation
 Protocol Documentation: https://docs.anvil.xyz/protocol-concepts
 

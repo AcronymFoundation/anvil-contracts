@@ -1,9 +1,10 @@
 import { ethers } from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { baseSetup } from '../setup'
-import { amountBeforeFee, getEmittedEventArgs, lastBlockTime } from '../util'
+import { amountBeforeFee, lastBlockTime } from '../util'
 import { expect } from 'chai'
 import { getModifyCollateralizableTokenAllowanceSignature } from '../cryptography'
+import { getEmittedEventArgs } from '../../common/util'
 
 describe('LetterOfCredit', function () {
   it('Should create a dynamic LOC', async function () {

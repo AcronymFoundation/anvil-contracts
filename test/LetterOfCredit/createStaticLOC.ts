@@ -1,8 +1,9 @@
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { baseSetup } from '../setup'
-import { amountWithFee, getEmittedEventArgs, lastBlockTime } from '../util'
+import { amountWithFee, lastBlockTime } from '../util'
 import { expect } from 'chai'
 import { getModifyCollateralizableTokenAllowanceSignature } from '../cryptography'
+import { getEmittedEventArgs } from '../../common/util'
 
 describe('LetterOfCredit', function () {
   it('Should create a static LOC', async function () {

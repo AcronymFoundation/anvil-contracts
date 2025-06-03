@@ -64,3 +64,70 @@ fork_blockchain() {
 
   echo "blockchain forked."
 }
+
+# Executes a proposal on a running localhost node via hardhat.
+# NB: This expects the node to already be running and the proposal to be created.
+# param1: the relative path to the root directory (i.e. 'anvil-contracts/').
+# param2: the id of the proposal to execute.
+execute_proposal() {
+  [ "$#" -gt "0" ] || error "execute_proposal param 1 missing"
+  path_to_root=$1
+  shift
+
+  [ "$#" -gt "0" ] || error "execute_proposal param 2 missing"
+  proposal_id=$1
+  shift
+
+  cd "$path_to_root" > /dev/null 2>&1
+
+  echo "\n********************"
+  echo "executing proposal id $proposal_id..."
+  echo "********************"
+
+  (
+    set -e
+
+    address=$HARDHAT_TEST_ACCOUNT_0
+
+    # Top 5 delegate addresses at the time of writing. May need to update this if it changes.
+    # 0xbA10d0f5D3F380d173aF531B7B15e59702C9cecE
+    # 0x80ae8fb747378f63b89bed2f0187a6eec9fff9b8
+    # 0xcA2274626d5e7BCa87feff45BC40A0D8626Bba6B
+    # 0xB933AEe47C438f22DE0747D57fc239FE37878Dd1
+    # 0x71553dF14eFe2708BF16734AAB821af239A24d3B
+    voters="0xbA10d0f5D3F380d173aF531B7B15e59702C9cecE 0x80ae8fb747378f63b89bed2f0187a6eec9fff9b8 0xcA2274626d5e7BCa87feff45BC40A0D8626Bba6B 0xB933AEe47C438f22DE0747D57fc239FE37878Dd1 0x71553dF14eFe2708BF16734AAB821af239A24d3B"
+    echo "funding voter accounts..."
+    for voter in $voters; do
+      ADDRESS_TO_IMPERSONATE="$address" NO_PROMPT=1 npx hardhat --network localhost transferEth --to-address "$voter" --amount 1000000000000000000
+    done
+
+    address=0xbA10d0f5D3F380d173aF531B7B15e59702C9cecE
+
+    echo "skipping forward until voting period..."
+    # Skip forward 2 days in blocks to start voting period (+1 for a small amount of padding)
+    NO_PROMPT=1 ADDRESS_TO_IMPERSONATE="$address" npx hardhat --network localhost mine --blocks-to-advance 14401
+
+    echo "voting from accounts ($voters)..."
+    for voter in $voters; do
+      NO_PROMPT=1 ADDRESS_TO_IMPERSONATE="$voter" npx hardhat --network localhost castVote --proposal-id "$proposal_id" --support 1
+    done
+
+    echo "skipping forward past voting period..."
+    # Skip forward 5 days in blocks to start voting period (+1 for a small amount of padding)
+    NO_PROMPT=1 ADDRESS_TO_IMPERSONATE="$address" npx hardhat --network localhost mine --blocks-to-advance 36001
+
+    echo "queueing proposal..."
+    NO_PROMPT=1 ADDRESS_TO_IMPERSONATE="$address" npx hardhat --network localhost queueProposal --proposal-id "$proposal_id"
+
+    echo "skipping forward until proposal is executable..."
+    # Warp forward 1+ weeks
+    NO_PROMPT=1 ADDRESS_TO_IMPERSONATE="$address" npx hardhat --network localhost warp --seconds 605000
+
+    echo "executing proposal..."
+    NO_PROMPT=1 ADDRESS_TO_IMPERSONATE="$address" npx hardhat --network localhost executeProposal --proposal-id "$proposal_id"
+
+    echo "proposal executed."
+  )
+
+  cd - > /dev/null 2>&1
+}

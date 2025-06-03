@@ -4,6 +4,12 @@ import '@nomicfoundation/hardhat-ethers'
 import 'hardhat-dependency-compiler'
 
 import { defineChainTasks } from './tasks/chain'
+import { defineGovernanceTasks } from './tasks/governance'
+import { defineTokenTasks } from './tasks/token'
+import { defineProxyTasks } from './tasks/proxy'
+
+// NB: Will need to set this to interact with non-localhost environments.
+const { PROVIDER_URL } = process.env
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -18,12 +24,25 @@ const config: HardhatUserConfig = {
   dependencyCompiler: {
     paths: [
       '@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol',
+      '@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol',
       '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol',
       '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol'
     ]
+  },
+  networks: {
+    sepolia: {
+      url: `${PROVIDER_URL}`
+    },
+    mainnet: {
+      url: `${PROVIDER_URL}`
+    },
+    hardhat: {}
   }
 }
 
 defineChainTasks()
+defineGovernanceTasks()
+defineProxyTasks()
+defineTokenTasks()
 
 export default config
