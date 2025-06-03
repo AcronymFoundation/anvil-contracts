@@ -23,11 +23,11 @@ There are some sample tests that can be run via `npm run test`.
 You may also easily run example scripts on a fork of an existing environment (e.g. mainnet). See [./bin/examples](./bin/examples) for more info.
 
 ### Tools
-There are various tasks defined in the [tasks/](tasks/) directory. They may be useful for querying information about and interacting with deployed contracts.
+There are various Hardhat tasks defined in the [tasks/](tasks/) directory. They may be useful for querying information about and interacting with deployed contracts.
 
 Note that to use these tasks, you'll need to set the `PRIVATE_KEY` environment variable. For read-only tasks, that address does not need any ETH, and in all cases, using an address with as little ETH as possible to accomplish your goals is recommended.
 
-If not using a local node, you'll also need to set the `PROVIDER_URL` environment variable.
+If not using a local node, you'll also need to set the `PROVIDER_URL` environment variable to the Ethereum JSON RPC provider URL to use.
 
 Example:
 ```
@@ -42,7 +42,8 @@ Protocol Documentation: https://docs.anvil.xyz/protocol-concepts
 
 Performed Audits: https://docs.anvil.xyz/audits
 
-There are also example scripts in [./scripts/examples](./scripts/examples) and examples that can be run on a [mainnet] fork in [./bin/examples](./bin/examples) 
+There are also example scripts in [./scripts/examples](./scripts/examples) and examples that can be run on a [mainnet] fork in [./bin/examples](./bin/examples).
+Note: you will need to set the `PRIVATE_KEY` environment variable (and also the `PROVIDER_URL` environment variable if not pointing to a local node). See the `Testing` section above for more info. 
 
 ## Mainnet Contract Addresses
 

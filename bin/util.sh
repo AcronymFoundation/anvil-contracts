@@ -90,11 +90,6 @@ execute_proposal() {
     address=$HARDHAT_TEST_ACCOUNT_0
 
     # Top 5 delegate addresses at the time of writing. May need to update this if it changes.
-    # 0xbA10d0f5D3F380d173aF531B7B15e59702C9cecE
-    # 0x80ae8fb747378f63b89bed2f0187a6eec9fff9b8
-    # 0xcA2274626d5e7BCa87feff45BC40A0D8626Bba6B
-    # 0xB933AEe47C438f22DE0747D57fc239FE37878Dd1
-    # 0x71553dF14eFe2708BF16734AAB821af239A24d3B
     voters="0xbA10d0f5D3F380d173aF531B7B15e59702C9cecE 0x80ae8fb747378f63b89bed2f0187a6eec9fff9b8 0xcA2274626d5e7BCa87feff45BC40A0D8626Bba6B 0xB933AEe47C438f22DE0747D57fc239FE37878Dd1 0x71553dF14eFe2708BF16734AAB821af239A24d3B"
     echo "funding voter accounts..."
     for voter in $voters; do
