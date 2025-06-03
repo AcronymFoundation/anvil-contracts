@@ -21,10 +21,8 @@ kill_node() {
   fi
 }
 
-# Kills the provided process ID no matter how this script exits
-# param1: the process ID to kill
+# Kills the local fork blockchain node (if one exists) no matter how this script exits.
 kill_node_on_exit() {
-  # Kill the node no matter how this script exits
   trap kill_node EXIT HUP INT TERM
 }
 
