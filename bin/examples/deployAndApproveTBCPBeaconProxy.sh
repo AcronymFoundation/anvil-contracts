@@ -35,9 +35,12 @@ echo "\n********************"
 echo "Creating proposal to add TBCP to vault..."
 echo "********************"
 
-address_with_delegated_anvil=0xbA10d0f5D3F380d173aF531B7B15e59702C9cecE
+# NB: This is a "dead" address, meaning that tokens it has shouldn't ever move. It has > 1B ANVL.
+address_with_delegated_anvil=0x000000000000000000000000000000000000dEaD
 # Fund account with ETH
 ADDRESS_TO_IMPERSONATE="$HARDHAT_TEST_ACCOUNT_0" NO_PROMPT=1 npx hardhat --network localhost transferEth --to-address "$address_with_delegated_anvil" --amount 1000000000000000000
+# Self-delegate ANVL so this address can propose
+ADDRESS_TO_IMPERSONATE="$address_with_delegated_anvil" NO_PROMPT=1 npx hardhat --network localhost delegate
 
 # Run proposal script
 NO_PROMPT=1 ADDRESS_TO_IMPERSONATE="$address_with_delegated_anvil" COLLATERALIZABLE_ADDRESS="$tbcp_proxy_address" npx hardhat run --network localhost scripts/examples/proposeAddCollateralizable.ts

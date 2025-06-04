@@ -1,7 +1,8 @@
 import {getGovernanceProxyContract} from "../common/governance";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import {add0x, currentTimeSeconds, getEmittedEventArgs, log, promptUser, truthy} from "../common/util";
+import {add0x, currentTimeSeconds, getEmittedEventArgs, getSigner, log, promptUser, truthy} from "../common/util";
 import {task} from "hardhat/config";
+import {getAnvilGovernorDelegatorAddress, getAnvlAddress, getClaimAddress} from "../common/contracts";
 
 const getProposal = async (args: any, hre: HardhatRuntimeEnvironment): Promise<void> => {
   const { proposalId } = args
@@ -120,6 +121,26 @@ const castVote = async (args: any, hre: HardhatRuntimeEnvironment): Promise<void
   await getProposal(args, hre)
 }
 
+const delegateVotes = async (args: any, hre: HardhatRuntimeEnvironment): Promise<void> => {
+  const { toAddress } = args
+
+  const signer = await getSigner(hre.ethers)
+  const anvlContract = await hre.ethers.getContractAt('Anvil', getAnvlAddress(), signer)
+
+  const claimContract = await hre.ethers.getContractAt('Claim', getClaimAddress(), signer)
+
+  const signerAddress = await signer.getAddress()
+  const balance = await anvlContract.balanceOf(signerAddress)
+  const provenUnclaimed = await claimContract.getProvenUnclaimedBalance(signerAddress)
+  const totalBalance = balance.valueOf() + provenUnclaimed.valueOf()
+
+  const delegate = toAddress || signerAddress
+  const tx = await anvlContract.delegate(delegate)
+  await tx.wait(1)
+
+  log(`delegated ${totalBalance.toString()} votes to ${delegate}`)
+}
+
 const queueProposal = async (args: any, hre: HardhatRuntimeEnvironment): Promise<void> => {
   const { proposalId } = args
 
@@ -183,6 +204,14 @@ export const defineGovernanceTasks = () => {
     .addParam('support', 'The vote value: 0 = against, 1 = for, 2 = abstain')
     .addOptionalParam('reason', 'The reason associated with the vote, if there is one')
     .setAction(castVote)
+
+  // example: npx hardhat --network localhost delegate --to-address "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  task('delegate', 'Delegates votes from the calling address to the specified address')
+    .addOptionalParam(
+      'toAddress',
+      'The address to which votes will be delegated. If empty, calling address will be used.'
+    )
+    .setAction(delegateVotes)
 
   // example: npx hardhat --network localhost queueProposal --proposal-id 1
   task('queueProposal', 'Queues the proposal with the provided data')
