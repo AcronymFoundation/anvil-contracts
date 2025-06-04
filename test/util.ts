@@ -1,5 +1,4 @@
 import { time } from '@nomicfoundation/hardhat-network-helpers'
-import { BaseContract } from 'ethers'
 
 /**
  * Gets the last block time plus the optional number of seconds to add.
@@ -34,40 +33,4 @@ export function amountBeforeFee(amountAfterFee: BigInt, feeBasisPoints: number):
   // amountAfterFee = amountBeforeFee.mul(10_000 + feeBasisPoints).div(10_000)
   // amountBeforeFee = amountAfterFee.mul(10_000).div(10_000 + feeBasisPoints)
   return (amountAfterFee.valueOf() * 10_000n) / BigInt(10_000 + feeBasisPoints).valueOf()
-}
-
-/**
- * Gets the event args associative array for the transaction and event name in question.
- * Note: this will only work if the event is emitted by the contract that is called.
- * If the event is emitted by another contract than the entrypoint contract, call getWrappedEventArgs(...).
- * @param tx The transaction that was executed.
- * @param contract The contract that declares the event (likely the one that sent the tx).
- * @param eventName The name of the event (e.g. "Transfer").
- * @param eventIndex The index of the event with the provided name to return (if there are multiple).
- */
-export async function getEmittedEventArgs(
-  tx: any,
-  contract: BaseContract,
-  eventName: string,
-  eventIndex: number = 0
-): Promise<any> {
-  const receipt = await tx.wait()
-  let currIndex = 0
-  for (const log of receipt.logs) {
-    const parsed = contract.interface.parseLog(log)
-    if (!parsed || parsed?.name != eventName || currIndex++ != eventIndex) {
-      continue
-    }
-
-    const args: any = {}
-    for (let i = 0; i < parsed.fragment.inputs.length; i++) {
-      args[parsed.fragment.inputs[i].name] = parsed.args[i]
-    }
-
-    return args
-  }
-
-  throw new Error(
-    `Event "${eventName}" not found in transaction receipt${eventIndex != 0 ? ` at index ${eventIndex}` : ''}`
-  )
 }

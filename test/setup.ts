@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat'
 import { Contract, ContractFactory } from 'ethers'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { getEmittedEventArgs } from './util'
+import { getEmittedEventArgs } from '../common/util'
 
 export interface TestInput {
   vault: Contract
