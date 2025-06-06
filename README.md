@@ -23,7 +23,8 @@ There are some sample tests that can be run via `npm run test`.
 You may also easily run example scripts on a fork of an existing environment (e.g. mainnet). See [./bin/examples](./bin/examples) for more info.
 
 ### Tools
-There are various Hardhat tasks defined in the [tasks/](tasks/) directory. They may be useful for querying information about and interacting with deployed contracts.
+There are various Hardhat tasks defined in the [tasks/](tasks/) directory and scripts in the [scripts/](scripts/) directory. They may be useful for querying information about and interacting with deployed contracts and/or deploying contracts.
+Disclaimer: The Anvil team does not represent that any of these tools work as described. Please read the code and repurpose and use them at your own risk.
 
 Note that to use these tasks, you'll need to set the `PRIVATE_KEY` environment variable. For read-only tasks, that address does not need any ETH, and in all cases, using an address with as little ETH as possible to accomplish your goals is recommended.
 
