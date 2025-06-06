@@ -13,11 +13,11 @@ import {getCollateralVaultAddress} from "../../common/contracts";
 import {verifyVotingPower} from "./util";
 
 const collateralizableAddresses = process.env.COLLATERALIZABLE_ADDRESSES
+const parsedAddresses = (collateralizableAddresses || '').split(',').map(x => x.trim()).filter(x => x !== '')
 
 const getAddCollateralizableProposalCall = async (): Promise<ProposalCall> => {
   const vault: Contract = await ethers.getContractAt('CollateralVault', getCollateralVaultAddress())
 
-  const parsedAddresses = (collateralizableAddresses || '').split(',').map(x => x.trim()).filter(x => x !== '')
   if (!parsedAddresses.length || parsedAddresses.filter(x => !isValidEthereumAddress(x)).length > 0) {
     console.error(`ERROR: COLLATERALIZABLE_ADDRESSES variable is not populated or does not contain a valid comma-separated list of addresses.`)
     process.exit(1)
@@ -44,7 +44,9 @@ async function main() {
 
   await verifyVotingPower(ethers, signer)
 
-  const description = `Adds ${collateralizableAddresses} as an approved collateralizable contract in the vault ${getCollateralVaultAddress()}`
+  const description = parsedAddresses.length > 1
+    ? `Adds ${parsedAddresses} as approved collateralizable contracts in the vault ${getCollateralVaultAddress()}`
+    : `Adds ${parsedAddresses} as an approved collateralizable contract in the vault ${getCollateralVaultAddress()}`
 
   const proposal: Proposal = newProposal([await getAddCollateralizableProposalCall()], description)
 
