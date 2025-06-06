@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat'
-import {getSigner, log} from '../../common/util'
+import {getSigner, isValidEthereumAddress, log} from '../../common/util'
 import {
   getProposalAsPrintableString,
   newProposal,
@@ -12,17 +12,23 @@ import {Contract} from "ethers";
 import {getCollateralVaultAddress} from "../../common/contracts";
 import {verifyVotingPower} from "./util";
 
-const collateralizableAddress = process.env.COLLATERALIZABLE_ADDRESS
+const collateralizableAddresses = process.env.COLLATERALIZABLE_ADDRESSES
+const parsedAddresses = (collateralizableAddresses || '').split(',').map(x => x.trim()).filter(x => x !== '')
 
 const getAddCollateralizableProposalCall = async (): Promise<ProposalCall> => {
   const vault: Contract = await ethers.getContractAt('CollateralVault', getCollateralVaultAddress())
 
-  const approvals = [
-    {
-      collateralizableAddress: collateralizableAddress,
+  if (!parsedAddresses.length || parsedAddresses.filter(x => !isValidEthereumAddress(x)).length > 0) {
+    console.error(`ERROR: COLLATERALIZABLE_ADDRESSES variable is not populated or does not contain a valid comma-separated list of addresses.`)
+    process.exit(1)
+  }
+
+  const approvals = parsedAddresses.map(collateralizableAddress => {
+    return {
+      collateralizableAddress,
       isApproved: true
-    },
-  ]
+    }
+  })
 
   const approvalUpdates = await vault.upsertCollateralizableContractApprovals.populateTransaction(approvals)
 
@@ -30,7 +36,7 @@ const getAddCollateralizableProposalCall = async (): Promise<ProposalCall> => {
 }
 
 /**
- * Usage: COLLATERALIZABLE_ADDRESS="someAddressHere" npx hardhat run --network localhost scripts/examples/proposeAddCollateralizable.ts
+ * Usage: COLLATERALIZABLE_ADDRESSES="someAddressHere" npx hardhat run --network localhost scripts/examples/proposeAddCollateralizable.ts
  */
 async function main() {
   // Just to prompt for address now rather than later
@@ -38,7 +44,9 @@ async function main() {
 
   await verifyVotingPower(ethers, signer)
 
-  const description = `Adds ${collateralizableAddress} as an approved collateralizable contract in the vault ${getCollateralVaultAddress()}`
+  const description = parsedAddresses.length > 1
+    ? `Adds ${parsedAddresses} as approved collateralizable contracts in the vault ${getCollateralVaultAddress()}`
+    : `Adds ${parsedAddresses} as an approved collateralizable contract in the vault ${getCollateralVaultAddress()}`
 
   const proposal: Proposal = newProposal([await getAddCollateralizableProposalCall()], description)
 
