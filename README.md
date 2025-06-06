@@ -168,18 +168,9 @@ provided an implementation that others may use.
 Extends OpenZeppelin’s [BeaconProxy](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/beacon/BeaconProxy.sol) 
 to make the implementation and beacon publicly-accessible via getters.
 
-## Installation & Build
-To run Anvil, clone the repository from GitHub and install its dependencies ([NodeJS](https://nodejs.org/) version 20).
-```
-git clone https://github.com/AcronymFoundation/anvil-contracts.git
-cd anvil-contracts
-npm install
-npx hardhat compile
-```
-
 ## Discussion
-For any concerns with the protocol, please open an issue and/or visit us on [Discord](https://discord.gg/57YVuqVx) to discuss.
+For any concerns with the protocol, please open an issue and/or visit us on [Discord](https://discord.gg/esfFn3dedz) to discuss.
 
 For security concerns, please email security@anvil.xyz.
 
-© Copyright 2024, Acronym Foundation
+© Copyright 2025, Acronym Foundation
