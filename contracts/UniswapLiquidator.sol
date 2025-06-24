@@ -39,13 +39,15 @@ contract UniswapLiquidator is ILiquidator, Ownable2Step {
      * @param _maxInputTokenAmount The maximum amount of the input token the liquidator may transfer from the caller.
      * @param _outputTokenAddress The address of the token the caller will receive as a result of this call.
      * @param _exactOutputTokenAmount The exact amount of the token the caller will receive as a result of this call.
+     * @param [unused].
      */
     function liquidate(
         address _initiator,
         address _inputTokenAddress,
         uint256 _maxInputTokenAmount,
         address _outputTokenAddress,
-        uint256 _exactOutputTokenAmount
+        uint256 _exactOutputTokenAmount,
+        bytes calldata
     ) external {
         IERC20 inputToken = IERC20(_inputTokenAddress);
 

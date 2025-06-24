@@ -58,7 +58,8 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 | CollateralVault                   | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f)   |
 | LetterOfCredit Proxy              | [0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808](https://etherscan.io/address/0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808)   |
 | LetterOfCredit Proxy Admin        | [0x12225bB169b38EF8849DD4F5Cc466ae5996e341D](https://etherscan.io/address/0x12225bB169b38EF8849DD4F5Cc466ae5996e341D)   |
-| LetterOfCredit Singleton          | [0x750Ab78B4fe51292d1F0053845AACe3eA959D5AD](https://etherscan.io/address/0x750Ab78B4fe51292d1F0053845AACe3eA959D5AD)   |
+| LetterOfCredit Singleton          | [0x24573B112456d3a96c97fB460B436e8CA870e27E](https://etherscan.io/address/0x24573B112456d3a96c97fB460B436e8CA870e27E)   |
+| PassThroughLiquidator             | [0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8](https://etherscan.io/address/0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8)   |
 | PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)   |
 | Reward                            | [0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA](https://etherscan.io/address/0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA)   |
 | TimeBasedCollateralPool Singleton | [0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f](https://etherscan.io/address/0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f)   |
@@ -117,6 +118,11 @@ This contract’s token support is configured with ERC-20 tokens that must also 
 `CollateralVault.sol` and `PythPriceOracle.sol` as well as their respective maximum usage 
 limits. Note: `LetterofCredit` is deployed as a proxy that delegates to a singleton contract.
 
+### PassThroughLiquidator.sol
+A flexible liquidator that allows calldata a target to be configured off-chain and passed through the LetterOfCredit
+contract to accomplish liquidation. This allows more complex liquidation strategies and the use of many different protocols
+generically. See the contract details for information on how to encode the pass-through data that configures liquidation.
+
 ### Pricing.sol
 A contract of math-related helpers to support `CollateralVault.sol`, `PythPriceOracle.sol`, and 
 `TimeBasedCollateralPool.sol`in pricing calculations.
@@ -162,7 +168,7 @@ lightweight via separating state storage (in the proxy contract) from core logic
 A simple liquidator that may be configured and used to convert at-risk LOCs. There are much more efficient and 
 profit-maximizing liquidators that can and hopefully will be written by 3rd party liquidators, but it is in Anvil's 
 best interest to have many functioning liquidators that guarantee that at-risk LOCs are converted, so Anvil has
-provided an implementation that others may use. 
+provided an implementation using UniswapV2 liquidity that others may use.
 
 ### VisibileBeaconProxy.sol
 Extends OpenZeppelin’s [BeaconProxy](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/beacon/BeaconProxy.sol) 

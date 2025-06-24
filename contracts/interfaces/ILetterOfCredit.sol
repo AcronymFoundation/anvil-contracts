@@ -48,6 +48,27 @@ interface ILetterOfCredit {
      * EVENTS *
      **********/
 
+    event LOCCreatedV2(
+        address indexed creator,
+        address indexed beneficiary,
+        bytes32 indexed tag,
+        address collateralContractAddress,
+        address collateralTokenAddress,
+        uint256 collateralTokenAmount,
+        uint256 claimableCollateral,
+        uint32 expirationTimestamp,
+        uint16 collateralFactorBasisPoints,
+        uint16 liquidatorIncentiveBasisPoints,
+        address creditedTokenAddress,
+        uint256 creditedTokenAmount,
+        uint96 id,
+        uint96 collateralId
+    );
+
+    /**
+     * Deprecated. Some of these events were emitted prior to the proxy upgrade that moved to using LOCCreatedV2, so
+     * this event must exist for backward compatibility.
+     */
     event LOCCreated(
         address indexed creator,
         address indexed beneficiary,

@@ -14,11 +14,13 @@ interface ILiquidatable {
      * @param _oraclePriceUpdate (optional) The oracle price update to be used for this liquidation.
      * @param _creatorAuthorization (optional) If not called by the creator, and the LOC is healthy, the signed creator
      * authorization necessary to convert the LOC.
+     * @param _liquidatorParams (optional) Parameters to be parsed and used by the ILiquidator implementation contract.
      */
     function convertLOC(
         uint96 _locId,
         address _iLiquidatorToUse,
         bytes calldata _oraclePriceUpdate,
-        bytes calldata _creatorAuthorization
+        bytes calldata _creatorAuthorization,
+        bytes calldata _liquidatorParams
     ) external payable;
 }
