@@ -60,6 +60,7 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 | LetterOfCredit Proxy Admin        | [0x12225bB169b38EF8849DD4F5Cc466ae5996e341D](https://etherscan.io/address/0x12225bB169b38EF8849DD4F5Cc466ae5996e341D)   |
 | LetterOfCredit Singleton          | [0x24573B112456d3a96c97fB460B436e8CA870e27E](https://etherscan.io/address/0x24573B112456d3a96c97fB460B436e8CA870e27E)   |
 | PassThroughLiquidator             | [0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8](https://etherscan.io/address/0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8)   |
+| Permit2PassThroughLiquidator      | [0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C](https://etherscan.io/address/0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C)   |
 | PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)   |
 | Reward                            | [0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA](https://etherscan.io/address/0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA)   |
 | TimeBasedCollateralPool Singleton | [0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f](https://etherscan.io/address/0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f)   |
@@ -122,6 +123,13 @@ limits. Note: `LetterofCredit` is deployed as a proxy that delegates to a single
 A flexible liquidator that allows calldata a target to be configured off-chain and passed through the LetterOfCredit
 contract to accomplish liquidation. This allows more complex liquidation strategies and the use of many different protocols
 generically. See the contract details for information on how to encode the pass-through data that configures liquidation.
+
+### Permit2PassThroughLiquidator.sol
+A flexible liquidator that allows calldata a target to be configured off-chain and passed through the LetterOfCredit
+contract to accomplish liquidation. This allows more complex liquidation strategies and the use of many different protocols
+generically. See the contract details for information on how to encode the pass-through data that configures liquidation.
+The difference between this contract and `PassThroughLiquidator` is that this contract assumes that the target contract 
+uses the Permit2 contract to manage approvals rather than ERC-20.
 
 ### Pricing.sol
 A contract of math-related helpers to support `CollateralVault.sol`, `PythPriceOracle.sol`, and 
