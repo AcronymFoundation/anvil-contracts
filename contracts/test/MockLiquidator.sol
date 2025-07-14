@@ -19,7 +19,8 @@ contract MockLiquidator is ILiquidator {
         address _inputTokenAddress,
         uint256 _inputTokenAmount,
         address _outputTokenAddress,
-        uint256 _outputTokenAmount
+        uint256 _outputTokenAmount,
+        bytes calldata /* not used */
     ) external {
         require(_inputTokenAmount > 0 && _outputTokenAmount > 0, "invalid input and/or output amount");
 

@@ -51,20 +51,19 @@ describe('LetterOfCredit', function () {
       await vault.getAddress()
     )
 
-    const tx = await letterOfCredit
-      .connect(creator)
-      .createDynamicLOC(
-        await beneficiary.getAddress(),
-        await collateralToken.getAddress(),
-        collateralTokenAmount,
-        await creditedToken.getAddress(),
-        creditedTokenAmount,
-        expirationSeconds,
-        ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'int32'], [outputPerUnitInputTokenPrice, exponent]),
-        allowanceSignature
-      )
+    const tx = await letterOfCredit.connect(creator).createDynamicLOC(
+      await beneficiary.getAddress(),
+      await collateralToken.getAddress(),
+      collateralTokenAmount,
+      await creditedToken.getAddress(),
+      creditedTokenAmount,
+      expirationSeconds,
+      ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'int32'], [outputPerUnitInputTokenPrice, exponent]),
+      allowanceSignature,
+      `0x${'af'.repeat(32)}` // tag
+    )
 
-    const ev: any = await getEmittedEventArgs(tx, letterOfCredit, 'LOCCreated')
+    const ev: any = await getEmittedEventArgs(tx, letterOfCredit, 'LOCCreatedV2')
     expect(ev.creator).to.equal(await creator.getAddress(), 'creator address mismatch')
     expect(ev.beneficiary).to.equal(await beneficiary.getAddress(), 'beneficiary address mismatch')
     expect(ev.collateralTokenAddress).to.equal(await collateralToken.getAddress(), 'collateral address mismatch')

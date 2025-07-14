@@ -11,12 +11,14 @@ interface ILiquidator {
      * @param _inputTokenAmount The amount of the token the liquidator will receive from the caller.
      * @param _outputTokenAddress The address of the token the caller will receive as a result of this call.
      * @param _outputTokenAmount The amount of the token the caller will receive as a result of this call.
+     * @param _liquidatorParams Parameters, if any, to be parsed and used by the ILiquidator implementation contract.
      */
     function liquidate(
         address _initiator,
         address _inputTokenAddress,
         uint256 _inputTokenAmount,
         address _outputTokenAddress,
-        uint256 _outputTokenAmount
+        uint256 _outputTokenAmount,
+        bytes calldata _liquidatorParams
     ) external;
 }

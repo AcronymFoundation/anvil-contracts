@@ -10,14 +10,19 @@ import { defineProxyTasks } from './tasks/proxy'
 
 // NB: Will need to set this to interact with non-localhost environments.
 const { PROVIDER_URL } = process.env
+// If compiling LetterOfCredit contract
+const optimizerRuns = 833
+// If not compiling LetterOfCredit contract
+// const optimizerRuns = 999999
 
 const config: HardhatUserConfig = {
   solidity: {
     version: '0.8.25',
     settings: {
+      viaIR: true,
       optimizer: {
         enabled: true,
-        runs: 150
+        runs: optimizerRuns
       }
     }
   },
