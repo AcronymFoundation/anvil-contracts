@@ -11,8 +11,8 @@ import "@openzeppelin/contracts-upgradeable/governance/GovernorUpgradeable.sol";
 import "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 /**
- * @title This is the initial Governor contract that is delegated to by `AnvilGovernorDelegator` for the Anvil protocol
- * to implement governance logic.
+ * @title This is version 2 of the Governor contract that is delegated to by `AnvilGovernorDelegator` for the Anvil
+ * protocol to implement governance logic.
  *
  * @custom:security-contact security@af.xyz
  */
@@ -99,6 +99,18 @@ contract AnvilGovernorDelegate is
         __GovernorVotesQuorumFraction_init(5);
         __GovernorStorage_init();
         __GovernorTimelockControl_init(timelock_);
+    }
+
+    /**
+     * Reinitializes the contract, updating the governance token.
+     *
+     * @dev Can only be called during execution of a governance proposal, and may only be called once due to the nature
+     * of the reinitializer modifier.
+     *
+     * @param newGovernanceToken_ Address of the new governance token.
+     */
+    function reinitializeGovernanceToken(address newGovernanceToken_) external reinitializer(2) onlyGovernance {
+        __GovernorVotes_init(IVotes(newGovernanceToken_));
     }
 
     /**
