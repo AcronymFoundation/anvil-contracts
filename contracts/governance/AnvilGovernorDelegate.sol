@@ -17,6 +17,7 @@ import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
  * @title This is version 2 of the Governor contract that is delegated to by `AnvilGovernorDelegator` for the Anvil
  * protocol to implement governance logic.
  *
+ * @dev Contract Version: 2.0.0
  * @custom:security-contact security@af.xyz
  */
 contract AnvilGovernorDelegate is
@@ -95,6 +96,14 @@ contract AnvilGovernorDelegate is
      * Initializes this delegate so that it may be used, as it operates within the UpgradableProxy pattern, in which
      * logic that would typically be contained within a constructor is moved to `initialize(...)` since the delegate
      * must be deployed before it is used by the contract that delegates to it.
+     *
+     * @dev This function has already been called and cannot be called again.
+     *
+     * @param timelock_ The address of the TimelockController contract.
+     * @param governanceToken_ The address of the governance token.
+     * @param votingPeriod_ The voting period for proposals.
+     * @param votingDelay_ The voting delay for proposals.
+     * @param proposalThreshold_ The voting threshold to create a proposal.
      */
     function initialize(
         TimelockControllerUpgradeable timelock_,
