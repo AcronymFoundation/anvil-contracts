@@ -17,7 +17,7 @@ contract Anvil is ERC20Votes {
      *
      * @param destinationAddress The address to which the tokens will be minted.
      */
-    constructor(address destinationAddress) ERC20("Anvil", "ANVL") EIP712("Anvil", "1") {
+    constructor(address destinationAddress) ERC20("Anvil", "ANVL") EIP712("Anvil", "2") {
         _mint(destinationAddress, _maxSupply());
     }
 
