@@ -28,6 +28,15 @@ contract AnvilGovernorDelegate is
     GovernorStorageUpgradeable,
     GovernorTimelockControlUpgradeable
 {
+    /***************
+     * ERROR TYPES *
+     ***************/
+
+    /**
+     * @dev Thrown when attempting to update the timelock controller, which is not allowed.
+     */
+    error CannotUpdateTimelock();
+
     /****************
      * PUBLIC VIEWS *
      ****************/
@@ -117,15 +126,15 @@ contract AnvilGovernorDelegate is
     }
 
     /**
-     * NB: We do not want to allow for the upgrade of our Timelock, though we must inherit from the `GovernorTimelockControlUpgradeable`
-     * due to constraints within Solidity. Thus, we disable upgrade manually by overriding the `updateTimelock` function.
+     * NB: We do not want to allow for the update of our Timelock, though we must inherit from the `GovernorTimelockControlUpgradeable`
+     * due to constraints within Solidity. Thus, we disable update manually by overriding the `updateTimelock` function.
      *
      * @inheritdoc GovernorTimelockControlUpgradeable
      */
     function updateTimelock(
         TimelockControllerUpgradeable
     ) external override(GovernorTimelockControlUpgradeable) onlyGovernance {
-        revert("Cannot upgrade the timelock");
+        revert CannotUpdateTimelock();
     }
 
     /********************************
