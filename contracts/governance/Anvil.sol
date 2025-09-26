@@ -9,11 +9,12 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
  * @title Anvil Token
  * @notice Anvil governance token, using OZ ERC20Votes.
  *
+ * @dev Contract Version: 2.0.0
  * @custom:security-contact security@af.xyz
  */
 contract Anvil is ERC20Votes {
     /**
-     * @notice Deploys the Anvil token, allocating the provided amount of tokens to the deployer.
+     * @notice Deploys the Anvil token, allocating the total supply of tokens to the provided destination.
      *
      * @param destinationAddress The address to which the tokens will be minted.
      */
