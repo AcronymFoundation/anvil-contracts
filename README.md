@@ -50,7 +50,7 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 
 | Name                              | Address                                                                                                                 |
 |-----------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Anvil                             | [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/address/0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc)   |
+| Anvil                             | [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/address/0xAEEAa594e7dc112D67b8547fe9767a02c15B5597)   |
 | AnvilGovernorDelegate             | [0xfe1118cE38818EA3C167929eacb6310CDc42a361](https://etherscan.io/address/0xfe1118cE38818EA3C167929eacb6310CDc42a361)   |
 | AnvilGovernorDelegator            | [0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9](https://etherscan.io/address/0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9)   |
 | AnvilTimelock                     | [0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21](https://etherscan.io/address/0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21)   |
