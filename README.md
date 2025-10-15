@@ -50,11 +50,11 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 
 | Name                              | Address                                                                                                                 |
 |-----------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Anvil                             | [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/address/0xAEEAa594e7dc112D67b8547fe9767a02c15B5597)   |
+| Anvil                             | [0xAEEAa594e7dc112D67b8547fe9767a02c15B5597](https://etherscan.io/address/0xAEEAa594e7dc112D67b8547fe9767a02c15B5597)   |
 | AnvilGovernorDelegate             | [0xfe1118cE38818EA3C167929eacb6310CDc42a361](https://etherscan.io/address/0xfe1118cE38818EA3C167929eacb6310CDc42a361)   |
 | AnvilGovernorDelegator            | [0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9](https://etherscan.io/address/0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9)   |
 | AnvilTimelock                     | [0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21](https://etherscan.io/address/0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21)   |
-| Claim                             | [0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac](https://etherscan.io/address/0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac)   |
+| Claim (legacy)                    | [0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac](https://etherscan.io/address/0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac)   |
 | CollateralVault                   | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f)   |
 | LetterOfCredit Proxy              | [0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808](https://etherscan.io/address/0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808)   |
 | LetterOfCredit Proxy Admin        | [0x12225bB169b38EF8849DD4F5Cc466ae5996e341D](https://etherscan.io/address/0x12225bB169b38EF8849DD4F5Cc466ae5996e341D)   |
@@ -62,17 +62,14 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 | PassThroughLiquidator             | [0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8](https://etherscan.io/address/0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8)   |
 | Permit2PassThroughLiquidator      | [0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C](https://etherscan.io/address/0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C)   |
 | PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)   |
-| Reward                            | [0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA](https://etherscan.io/address/0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA)   |
+| Reward (legacy)                   | [0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA](https://etherscan.io/address/0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA)   |
 | TimeBasedCollateralPool Singleton | [0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f](https://etherscan.io/address/0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f)   |
 | TimeBasedCollateralPool Beacon    | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14)   |
 | UniswapLiquidator                 | [0x716321565e1EAbA200789E14ad92c9dA40B14589](https://etherscan.io/address/0x716321565e1EAbA200789E14ad92c9dA40B14589)   |
 
 ## Contract Descriptions
 ### Anvil.sol
-Anvil’s ERC-20 governance token contract with extended functionality in order to allow 
-for Governance participation by claimants with provable balances in `Claim.sol`. 
-This allows claimants to delegate voting power of both vested and unvested 
-tokens in the `Claim` contract in addition to balances held in their wallets.
+Anvil’s ERC-20 Governance token contract that utilizes OpenZeppelin's [ERC20Votes](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Votes.sol) extension contract. This is the second version of Anvil's Governance token. The first version, which has more extensive logic related to Claim.sol, can be found at [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/token/0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc).
 
 ### AnvilGovernorDelegate.sol
 Governance logic contract delegated to by `AnvilGovernorDelegator.sol`. 
@@ -97,6 +94,8 @@ Initialization sets a Merkle root for balance proofs as well as details regardin
 token vesting (delay to start, vesting period). While this contract can be directly 
 called to claim vested tokens, initial proof of token balances held in this contract 
 and all delegation actions must be done through `Anvil.sol`. 
+
+Note: This contract is related to the first version of the Anvil Governance token only. It is not utilized with regard to the current Governance token, which was distributed without being subject to vesting.
 
 ### CollateralVault.sol
 Vault to house collateral across the protocol, tracking available and reserved balances 
