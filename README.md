@@ -54,7 +54,6 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 | AnvilGovernorDelegate             | [0xfe1118cE38818EA3C167929eacb6310CDc42a361](https://etherscan.io/address/0xfe1118cE38818EA3C167929eacb6310CDc42a361)   |
 | AnvilGovernorDelegator            | [0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9](https://etherscan.io/address/0x00e83d0698FAf01BD080A4Dd2927e6aB7C4874c9)   |
 | AnvilTimelock                     | [0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21](https://etherscan.io/address/0x4eeB7c5BB75Fc0DBEa4826BF568FD577f62cad21)   |
-| Claim (legacy)                    | [0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac](https://etherscan.io/address/0xeFd194D4Ff955E8958d132319F31D2aB9f7E29Ac)   |
 | CollateralVault                   | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f)   |
 | LetterOfCredit Proxy              | [0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808](https://etherscan.io/address/0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808)   |
 | LetterOfCredit Proxy Admin        | [0x12225bB169b38EF8849DD4F5Cc466ae5996e341D](https://etherscan.io/address/0x12225bB169b38EF8849DD4F5Cc466ae5996e341D)   |
@@ -62,7 +61,6 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 | PassThroughLiquidator             | [0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8](https://etherscan.io/address/0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8)   |
 | Permit2PassThroughLiquidator      | [0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C](https://etherscan.io/address/0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C)   |
 | PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)   |
-| Reward (legacy)                   | [0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA](https://etherscan.io/address/0xC6a06f2D000b8CFDd392C4d6AB715a9ff1dA22dA)   |
 | TimeBasedCollateralPool Singleton | [0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f](https://etherscan.io/address/0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f)   |
 | TimeBasedCollateralPool Beacon    | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14)   |
 | UniswapLiquidator                 | [0x716321565e1EAbA200789E14ad92c9dA40B14589](https://etherscan.io/address/0x716321565e1EAbA200789E14ad92c9dA40B14589)   |
@@ -147,7 +145,7 @@ to the caller that was passed to the function and not used in the function's exe
 
 ### Reward.sol
 Generic reward contract enabling cumulative reward publishing and claiming via Merkle roots by rewarded accounts. It may
-be configured to use any ERC-20 token for rewards. The `Reward.sol` address listed above uses `ANVL` as the reward token.
+be configured to use any ERC-20 token for rewards.
 
 ### SignatureNonces.sol
 Built on OpenZeppelin’s 
@@ -186,4 +184,4 @@ For any concerns with the protocol, please open an issue and/or visit us on [Dis
 
 For security concerns, please email security@anvil.xyz.
 
-© Copyright 2025, Acronym Foundation
+© Copyright 2026, Acronym Foundation
