@@ -57,9 +57,11 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 | CollateralVault                   | [0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f](https://etherscan.io/address/0x5d2725fdE4d7Aa3388DA4519ac0449Cc031d675f)   |
 | LetterOfCredit Proxy              | [0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808](https://etherscan.io/address/0x14db9a91933aD9433E1A0dB04D08e5D9EF7c4808)   |
 | LetterOfCredit Proxy Admin        | [0x12225bB169b38EF8849DD4F5Cc466ae5996e341D](https://etherscan.io/address/0x12225bB169b38EF8849DD4F5Cc466ae5996e341D)   |
-| LetterOfCredit Singleton          | [0x24573B112456d3a96c97fB460B436e8CA870e27E](https://etherscan.io/address/0x24573B112456d3a96c97fB460B436e8CA870e27E)   |
-| PassThroughLiquidator             | [0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8](https://etherscan.io/address/0x9ae1CAA5cE6fA330fcE98315159BCD433B1342b8)   |
-| Permit2PassThroughLiquidator      | [0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C](https://etherscan.io/address/0x8Aa57e442e4562c80FDDAD1b71ADF0BA75E2eb4C)   |
+| LetterOfCredit Singleton          | [0x6c22beA8930980C6C5B4f9c449DA0964eDCAa33B](https://etherscan.io/address/0x6c22beA8930980C6C5B4f9c449DA0964eDCAa33B)   |
+| PassThroughLiquidator Proxy       | [0xEBA84Fa56BF835b983e19c12dF700588E0f3Abbc](https://etherscan.io/address/0xEBA84Fa56BF835b983e19c12dF700588E0f3Abbc) 
+| PassThroughLiquidator Singleton   | [0x41247088719F5ba8125F135d263C11eF8d3545F1](https://etherscan.io/address/0x41247088719F5ba8125F135d263C11eF8d3545F1)   |
+| Permit2PassThroughLiquidator Proxy| [0x27b0dd877a9947881B7Df9cA4846E6AffB358286](https://etherscan.io/address/0x27b0dd877a9947881B7Df9cA4846E6AffB358286)   |
+| Permit2PassThroughLiquidator Singleton | [0xA2eAc2691357D25Ae4C3052450731FfA9828b745](https://etherscan.io/address/0xA2eAc2691357D25Ae4C3052450731FfA9828b745)   |
 | PythPriceOracle                   | [0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05](https://etherscan.io/address/0xC6f3405c861Fa0dca04EC4BA59Bc189D1d56Ee05)   |
 | TimeBasedCollateralPool Singleton | [0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f](https://etherscan.io/address/0xCc437a7Bb14f07de09B0F4438df007c8F64Cf29f)   |
 | TimeBasedCollateralPool Beacon    | [0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14](https://etherscan.io/address/0x1f00D6f7C18a8edf4f8Bb4Ead8a898aBDd9c9E14)   |
@@ -67,7 +69,7 @@ Note: you will need to set the `PRIVATE_KEY` environment variable (and also the 
 
 ## Contract Descriptions
 ### Anvil.sol
-Anvil’s ERC-20 Governance token contract that utilizes OpenZeppelin's [ERC20Votes](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Votes.sol) extension contract. This is the second version of Anvil's Governance token. The first version, which has more extensive logic related to Claim.sol, can be found at [0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc](https://etherscan.io/token/0x2Ca9242c1810029Efed539F1c60D68B63AD01BFc).
+Anvil’s ERC-20 Governance token contract that utilizes OpenZeppelin's [ERC20Votes](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Votes.sol) extension contract.
 
 ### AnvilGovernorDelegate.sol
 Governance logic contract delegated to by `AnvilGovernorDelegator.sol`. 
@@ -85,15 +87,6 @@ Implementation of OpenZeppelin’s
 [TimeLockController.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/TimelockController.sol) 
 to allow for time delay before Governance updates. Currently, this deployed contract’s 
 address owns `CollateralVault.sol`, `LetterOfCredit.sol`, `PythPriceOracle.sol`.
-
-### Claim.sol
-Claim contract for the one-time initial issuance of Anvil tokens. 
-Initialization sets a Merkle root for balance proofs as well as details regarding 
-token vesting (delay to start, vesting period). While this contract can be directly 
-called to claim vested tokens, initial proof of token balances held in this contract 
-and all delegation actions must be done through `Anvil.sol`. 
-
-Note: This contract is related to the first version of the Anvil Governance token only. It is not utilized with regard to the current Governance token, which was distributed without being subject to vesting.
 
 ### CollateralVault.sol
 Vault to house collateral across the protocol, tracking available and reserved balances 
@@ -180,7 +173,7 @@ Extends OpenZeppelin’s [BeaconProxy](https://github.com/OpenZeppelin/openzeppe
 to make the implementation and beacon publicly-accessible via getters.
 
 ## Discussion
-For any concerns with the protocol, please open an issue and/or visit us on [Discord](https://discord.gg/esfFn3dedz) to discuss.
+For any concerns with the protocol, please open an issue and/or visit us on [Discord](https://discord.gg/anvil) to discuss.
 
 For security concerns, please email security@anvil.xyz.
 
