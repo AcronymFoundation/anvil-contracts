@@ -12,68 +12,78 @@ import "./interfaces/ILetterOfCredit.sol";
  * LetterOfCredit proxy.
  */
 abstract contract LetterOfCreditStorage {
-    /***********
-     * STORAGE *
-     ***********/
+  /***********
+   * STORAGE *
+   ***********/
 
-    /// NB: uint96 stores up to 7.9 x 10^28 and packs tightly with addresses (12 + 20 = 32 bytes).
-    uint96 internal locNonce;
+  /// NB: uint96 stores up to 7.9 x 10^28 and packs tightly with addresses (12 + 20 = 32 bytes).
+  uint96 internal locNonce;
 
-    /// Max age of oracle update.
-    /// NB: uint16 gets us up to ~18hrs, which should be plenty. If our oracle is that stale we have very large problems.
-    uint16 public maxPriceUpdateSecondsAgo;
+  /// Max age of oracle update.
+  /// NB: uint16 gets us up to ~18hrs, which should be plenty. If our oracle is that stale we have very large problems.
+  uint16 public maxPriceUpdateSecondsAgo;
 
-    /// Extending a LOC can make it so that the total duration of any given LOC may be larger than this, but no LOC may
-    /// have more than this number of seconds remaining.
-    uint32 public maxLocDurationSeconds;
+  /// Extending a LOC can make it so that the total duration of any given LOC may be larger than this, but no LOC may
+  /// have more than this number of seconds remaining.
+  uint32 public maxLocDurationSeconds;
 
-    /// The ICollateral contract to use for new LOCs, after which, it is stored on the LOC referenced.
-    ICollateral public collateralContract;
-    // The IPriceOracle to use for all price interactions (NB: for both new and existing LOCs).
-    IPriceOracle public priceOracle;
+  /// The ICollateral contract to use for new LOCs, after which, it is stored on the LOC referenced.
+  ICollateral public collateralContract;
+  // The IPriceOracle to use for all price interactions (NB: for both new and existing LOCs).
+  IPriceOracle public priceOracle;
 
-    /// id (nonce) => Letter of Credit
-    mapping(uint96 id => LOC letterOfCredit) internal locs;
+  /// id (nonce) => Letter of Credit
+  mapping(uint96 id => LOC letterOfCredit) internal locs;
 
-    /// Credited Token Address => token available for use as LOC credited tokens and its limits for use.
-    mapping(address creditedTokenAddress => CreditedToken creditedToken) internal creditedTokens;
+  /// Credited Token Address => token available for use as LOC credited tokens and its limits for use.
+  mapping(address creditedTokenAddress => CreditedToken creditedToken) internal creditedTokens;
 
-    /// collateral token address => credited token address => CollateralFactor.
-    mapping(address collateralTokenAddress => mapping(address creditedTokenAddress => CollateralFactor collateralFactor))
-        internal collateralToCreditedToCollateralFactors;
+  /// collateral token address => credited token address => CollateralFactor.
+  mapping(address collateralTokenAddress => mapping(address creditedTokenAddress => CollateralFactor collateralFactor))
+    internal collateralToCreditedToCollateralFactors;
 
-    /*******************
-     * STORAGE STRUCTS *
-     *******************/
+  /*******************
+   * STORAGE STRUCTS *
+   *******************/
 
-    struct CreditedToken {
-        uint256 minPerDynamicLOC;
-        uint256 maxPerDynamicLOC;
-        uint256 globalMaxInDynamicUse;
-        uint256 globalAmountInDynamicUse;
-    }
+  struct CreditedToken {
+    uint256 minPerDynamicLOC;
+    uint256 maxPerDynamicLOC;
+    uint256 globalMaxInDynamicUse;
+    uint256 globalAmountInDynamicUse;
+  }
 
-    struct CollateralFactor {
-        uint16 creationCollateralFactorBasisPoints;
-        uint16 collateralFactorBasisPoints;
-        uint16 liquidatorIncentiveBasisPoints;
-    }
+  struct CollateralFactor {
+    uint16 creationCollateralFactorBasisPoints;
+    uint16 collateralFactorBasisPoints;
+    uint16 liquidatorIncentiveBasisPoints;
+    /// The fee, in basis points, charged against a healthy LOC's collateral when it is liquidated
+    /// to serve a redemption. Unhealthy liquidations use liquidatorIncentiveBasisPoints instead.
+    /// @dev Appended in contract version 3.0.0. Safe: CollateralFactor is only ever a mapping
+    /// value, and the new member packs into the struct's existing (single) storage slot, so
+    /// pre-upgrade entries simply read 0 until re-upserted.
+    uint16 redeemBufferBasisPoints;
+  }
 
-    struct LOC {
-        uint96 collateralId;
-        address creator;
-        // --- storage slot separator
-        address beneficiary;
-        // NB: uint32 gets us to the year 2106. If we hit that, redeploy.
-        uint32 expirationTimestamp;
-        uint16 collateralFactorBasisPoints;
-        uint16 liquidatorIncentiveBasisPoints;
-        // --- storage slot separator
-        ICollateral collateralContract;
-        address collateralTokenAddress;
-        uint256 collateralTokenAmount;
-        uint256 claimableCollateral;
-        address creditedTokenAddress;
-        uint256 creditedTokenAmount;
-    }
+  struct LOC {
+    uint96 collateralId;
+    address creator;
+    // --- storage slot separator
+    address beneficiary;
+    // NB: uint32 gets us to the year 2106. If we hit that, redeploy.
+    uint32 expirationTimestamp;
+    /// @dev DEPRECATED as of contract version 3.0.0: collateral factors are global (always read
+    /// from collateralToCreditedToCollateralFactors). Kept to preserve the storage layout of LOCs
+    /// created before V3; written as 0 for new LOCs and never read.
+    uint16 collateralFactorBasisPoints;
+    /// @dev DEPRECATED as of contract version 3.0.0. See collateralFactorBasisPoints above.
+    uint16 liquidatorIncentiveBasisPoints;
+    // --- storage slot separator
+    ICollateral collateralContract;
+    address collateralTokenAddress;
+    uint256 collateralTokenAmount;
+    uint256 claimableCollateral;
+    address creditedTokenAddress;
+    uint256 creditedTokenAmount;
+  }
 }
